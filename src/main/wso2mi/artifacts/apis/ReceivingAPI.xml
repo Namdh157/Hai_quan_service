@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/api/v1/receiving/registrations" name="ReceivingAPI" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- UC-22: Tiếp nhận đăng ký hồ sơ mới -->
+    <resource methods="POST" uri-template="/">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-22] Received New Registration Request"/>
+                <!-- Extract requestId, procedureCode, enterpriseId using XPath -->
+                <property name="requestId" expression="//requestId/text()"/>
+                <property name="procedureCode" expression="//procedureCode/text()"/>
+                <property name="enterpriseId" expression="//enterpriseId/text()"/>
+            </log>
+            
+            <call>
+                <endpoint key="BackendReceivingCreateEndpoint"/>
+            </call>
+            <!-- Respond auto formats based on backend Content-Type -->
+            <respond/>
+        </inSequence>
+        <outSequence/>
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-22] Error Processing New Registration"/>
+                <property name="ERROR_CODE" expression="get-property('ERROR_CODE')"/>
+                <property name="ERROR_MESSAGE" expression="get-property('ERROR_MESSAGE')"/>
+            </log>
+            <!-- Forward the error to client -->
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- UC-23: Tiếp nhận sửa hồ sơ -->
+    <resource methods="POST" uri-template="/{registrationId}/amend">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-23] Received Registration Amend Request"/>
+                <!-- Extract path parameter registrationId using get-property -->
+                <property name="registrationId" expression="get-property('uri.var.registrationId')"/>
+                <!-- Extract requestId from payload -->
+                <property name="requestId" expression="//requestId/text()"/>
+            </log>
+            
+            <call>
+                <endpoint key="BackendReceivingUpdateEndpoint"/>
+            </call>
+            <respond/>
+        </inSequence>
+        <outSequence/>
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-23] Error Processing Registration Amend"/>
+                <property name="ERROR_CODE" expression="get-property('ERROR_CODE')"/>
+                <property name="ERROR_MESSAGE" expression="get-property('ERROR_MESSAGE')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+</api>
