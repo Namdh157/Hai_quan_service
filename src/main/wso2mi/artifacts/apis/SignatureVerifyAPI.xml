@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/api/v1/signature" name="SignatureVerifyAPI" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- UC-25: Xác thực chữ ký số -->
+    <resource methods="POST"
+              uri-template="/verify">
+
+        <inSequence>
+
+            <!-- Extract Request Fields -->
+            <property name="requestId"
+                      expression="//requestId/text()"
+                      scope="default"/>
+            <property name="procedureCode"
+                      expression="//procedureCode/text()"
+                      scope="default"/>
+            <property name="signedData"
+                      expression="//signedData/text()"
+                      scope="default"/>
+            <property name="signatureValue"
+                      expression="//signature/text()"
+                      scope="default"/>
+            <property name="signTime"
+                      expression="//signTime/text()"
+                      scope="default"/>
+
+            <!-- Log Request -->
+            <log level="custom">
+                <property name="UseCase" value="[UC-25] Signature Verification"/>
+                <property name="requestId" expression="get-property('requestId')"/>
+                <property name="procedureCode" expression="get-property('procedureCode')"/>
+                <property name="signTime" expression="get-property('signTime')"/>
+            </log>
+
+            <!-- Validate Mandatory Fields -->
+            <filter xpath="string-length(get-property('requestId')) = 0 
+                           or string-length(get-property('signedData')) = 0 
+                           or string-length(get-property('signatureValue')) = 0 
+                           or string-length(get-property('signTime')) = 0">
+                <then>
+                    <property name="HTTP_SC" value="400" scope="axis2"/>
+                    <payloadFactory media-type="xml">
+                        <format>
+                            <error>
+                                <code>SIG_001</code>
+                                <message>Invalid signature format</message>
+                            </error>
+                        </format>
+                        <args/>
+                    </payloadFactory>
+                    <respond/>
+                </then>
+                <else>
+
+                    <!-- Switch by procedureCode -->
+                    <switch source="get-property('procedureCode')">
+
+                        <case regex=".*">
+                            <call>
+                                <endpoint key="BackendSignatureVerifyEndpoint"/>
+                            </call>
+                        </case>
+
+                        <default>
+                            <property name="HTTP_SC" value="400" scope="axis2"/>
+                            <payloadFactory media-type="xml">
+                                <format>
+                                    <error>
+                                        <code>400</code>
+                                        <message>Invalid procedureCode</message>
+                                    </error>
+                                </format>
+                                <args/>
+                            </payloadFactory>
+                            <respond/>
+                        </default>
+
+                    </switch>
+
+                </else>
+            </filter>
+
+            <!-- Log Verification Result -->
+            <log level="custom">
+                <property name="UseCase" value="[UC-25] Verification Completed"/>
+                <property name="requestId" expression="get-property('requestId')"/>
+                <property name="certificateSerial" expression="//signer/serialNumber/text()"/>
+                <property name="verificationResult" expression="//valid/text()"/>
+            </log>
+
+            <respond/>
+
+        </inSequence>
+
+        <outSequence/>
+
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-25] Failed"/>
+                <property name="requestId" expression="get-property('requestId')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+
+    </resource>
+</api>
