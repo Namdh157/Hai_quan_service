@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+    <api context="/api/v1/routingapi" name="RoutingAPI" xmlns="http://ws.apache.org/ns/synapse">
+      <!-- UC26: Định tuyến thông điệp-->
+       <resource methods="POST" uri-template="/dispatch">
+        <inSequence>
+            <property name="requestId" expression="//requestId/text()"/>
+            <property name="registrationId" expression="//registrationId/text()"/>
+            <property name="procedureCode" expression="//procedureCode/text()"/>
+            <log level="custom">
+                <property name="Status" value="\[UC-26\] Received Routing Request"/>
+                <property name="requestId" expression="get-property('requestId')"/>
+                <property name="registrationId" expression="get-property('registrationId')"/>
+                <property name="procedureCode" expression="get-property('procedureCode')"/>
+            </log>
+            <switch source="get-property('procedureCode')">
+                <case regex="HQ01">
+                    <log level="custom">
+                        <property name="Status" value="\[UC-26\] Routing to HQ Subsystem"/>
+                    </log>
+                    <call>
+                        <endpoint key="BackendRoutingDispathEndpoint"/>
+                    </call>
+                </case>
+                <!-- Thêm các case khác cho procedureCode tại đây -->
+                <default>
+                    <log level="custom">
+                        <property name="Status" value="\[UC-26\] Routing Failed - Unknown procedureCode"/>
+                        <property name="procedureCode" expression="get-property('procedureCode')"/>
+                    </log>
+                    <!-- Tạo response lỗi -->
+                    <payloadFactory media-type="xml">
+                        <format>
+                            <error>
+                                <message>Routing failed: Unknown procedureCode</message>
+                                <procedureCode>$1</procedureCode>
+                            </error>
+                        </format>
+                        <args>
+                            <arg evaluator="xml" expression="get-property('procedureCode')"/>
+                        </args>
+                    </payloadFactory>
+                    <property name="HTTP_SC" value="400" scope="axis2"/>
+                </default>
+            </switch>
+            <respond/>
+        </inSequence>
+        <outSequence/>
+        <faultSequence>
+            <log level="full">
+                <property name="Status" value="\[UC-26\] Fault Occurred"/>
+            </log>
+            <respond/>
+        </faultSequence>
+      </resource>
+    </api>

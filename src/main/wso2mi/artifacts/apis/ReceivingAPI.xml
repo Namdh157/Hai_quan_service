@@ -55,4 +55,97 @@
             <respond/>
         </faultSequence>
     </resource>
+
+    <!-- UC-24: Tiếp nhận hủy hồ sơ -->
+    <resource methods="POST"
+              uri-template="/{registrationId}/cancel">
+
+        <inSequence>
+
+            <!-- Extract Path Param -->
+            <property name="registrationId"
+                      expression="get-property('uri.var.registrationId')"
+                      scope="default"/>
+
+            <!-- Extract Request Fields -->
+            <property name="requestId"
+                      expression="//requestId/text()"
+                      scope="default"/>
+            <property name="cancelReason"
+                      expression="//cancelReason/text()"
+                      scope="default"/>
+            <property name="procedureCode"
+                      expression="//procedureCode/text()"
+                      scope="default"/>
+
+            <!-- Log Request -->
+            <log level="custom">
+                <property name="UseCase" value="[UC-24] Receive Cancel Registration"/>
+                <property name="registrationId" expression="get-property('registrationId')"/>
+                <property name="requestId" expression="get-property('requestId')"/>
+                <property name="procedureCode" expression="get-property('procedureCode')"/>
+                <property name="cancelReason" expression="get-property('cancelReason')"/>
+            </log>
+
+            <!-- Validate cancelReason mandatory -->
+            <filter xpath="string-length(get-property('cancelReason')) = 0">
+                <then>
+                    <property name="HTTP_SC" value="400" scope="axis2"/>
+                    <payloadFactory media-type="xml">
+                        <format>
+                            <error>
+                                <code>400</code>
+                                <message>cancelReason is required</message>
+                            </error>
+                        </format>
+                        <args/>
+                    </payloadFactory>
+                    <respond/>
+                </then>
+                <else>
+
+                    <!-- Switch by procedureCode -->
+                    <switch source="get-property('procedureCode')">
+
+                        <case regex=".*">
+                            <call>
+                                <endpoint key="BackendReceiveCancelEndpoint"/>
+                            </call>
+                        </case>
+
+                        <default>
+                            <property name="HTTP_SC" value="400" scope="axis2"/>
+                            <payloadFactory media-type="xml">
+                                <format>
+                                    <error>
+                                        <code>400</code>
+                                        <message>Invalid procedureCode</message>
+                                    </error>
+                                </format>
+                                <args/>
+                            </payloadFactory>
+                            <respond/>
+                        </default>
+
+                    </switch>
+
+                </else>
+            </filter>
+
+            <respond/>
+
+        </inSequence>
+
+        <outSequence/>
+
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-24] Failed"/>
+                <property name="registrationId" expression="get-property('registrationId')"/>
+                <property name="requestId" expression="get-property('requestId')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+
+    </resource>
 </api>
