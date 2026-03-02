@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<endpoint name="BackendRoutingDispathEndpoint" xmlns="http://ws.apache.org/ns/synapse">
-    <http method="post" uri-template="http://192.168.0.133:8080//api/v1/routing/dispatch">
+<endpoint name="BackendMessageParseSpecialEndpoint" xmlns="http://ws.apache.org/ns/synapse">
+    <http method="post" uri-template="http://192.168.0.133:8080/api/v1/messages/parse">
         <suspendOnFailure>
             <initialDuration>2000</initialDuration>
             <progressionFactor>1.0</progressionFactor>

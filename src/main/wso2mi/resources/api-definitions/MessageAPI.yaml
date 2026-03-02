@@ -1,13 +1,13 @@
 openapi: 3.0.1
 info:
-  title: RoutingAPI
-  description: API Definition of RoutingAPI
+  title: MessageAPI
+  description: API Definition of MessageAPI
   version: 1.0.0
 servers:
-- url: http://localhost:8290/api/v1/routingapi
-- url: https://localhost:8253/api/v1/routingapi
+- url: http://localhost:8290/messageapi
+- url: https://localhost:8253/messageapi
 paths:
-  /dispatch:
+  /parse:
     post:
       requestBody:
         description: Sample Payload
@@ -27,35 +27,7 @@ paths:
       responses:
         default:
           description: Default response
-  /resend/{messageId}:
-    post:
-      parameters:
-      - name: messageId
-        in: path
-        required: true
-        style: simple
-        explode: false
-        schema:
-          type: string
-      requestBody:
-        description: Sample Payload
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                payload:
-                  type: object
-          application/xml:
-            schema:
-              type: object
-              xml:
-                name: payload
-        required: false
-      responses:
-        default:
-          description: Default response
-  /resend:
+  /store:
     post:
       requestBody:
         description: Sample Payload
