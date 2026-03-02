@@ -1,7 +1,7 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<api context="/api/v1/routing" name="RoutingAPI" xmlns="http://ws.apache.org/ns/synapse">
-    <!-- UC-26: Dispatch Resource from previous request -->
-    <resource methods="POST" uri-template="/dispatch">
+<?xml version="1.0" encoding="UTF-8" ?>
+    <api context="/api/v1/routingapi" name="RoutingAPI" xmlns="http://ws.apache.org/ns/synapse">
+      <!-- UC26: Định tuyến thông điệp-->
+       <resource methods="POST" uri-template="/dispatch">
         <inSequence>
             <property name="requestId" expression="//requestId/text()"/>
             <property name="registrationId" expression="//registrationId/text()"/>

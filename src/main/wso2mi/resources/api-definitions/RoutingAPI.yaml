@@ -4,8 +4,8 @@ info:
   description: API Definition of RoutingAPI
   version: 1.0.0
 servers:
-- url: http://localhost:8290/api/v1/routing
-- url: https://localhost:8253/api/v1/routing
+- url: http://localhost:8290/api/v1/routingapi
+- url: https://localhost:8253/api/v1/routingapi
 paths:
   /dispatch:
     post:

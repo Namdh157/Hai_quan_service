@@ -55,3 +55,29 @@ paths:
       responses:
         default:
           description: Default response
+  /{registrationId}/cancel:
+    post:
+      parameters:
+      - name: registrationId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        description: Sample Payload
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payload:
+                  type: object
+          application/xml:
+            schema:
+              type: object
+              xml:
+                name: payload
+        required: false
+      responses:
+        default:
+          description: Default response
