@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/messageapi" name="MessageAPI" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- UC 29-->
+    <resource methods="POST" uri-template="/parse">
+    <inSequence>
+    <property expression="//rawMessage/requestId/text()" name="requestId" scope="default" type="STRING"/>
+    <property expression="//rawMessage/procedureCode/text()" name="procedureCode" scope="default" type="STRING"/>
+    <property expression="//rawMessage/registrationId/text()" name="registrationId" scope="default" type="STRING"/>
+        <log level="custom">
+            <property name="Status" value="[UC-29] Analyzing Message Content"/>
+            <property name="requestId" expression="get-property('requestId')"/>
+            <property name="procedureCode" expression="get-property('procedureCode')"/>
+            <property name="registrationId" expression="get-property('registrationId')"/>
+        </log>
+
+        <switch source="get-property('procedureCode')">
+            <case regex="PC_01">
+                <call>
+                    <endpoint key="BackendMessageParseGenericEndpoint"/>
+                </call>
+            </case>
+            <case regex="PC_02">
+                <call>
+                    <endpoint key="BackendMessageParseSpecialEndpoint"/>
+                </call>
+            </case>
+            <default>
+                <call>
+                    <endpoint key="BackendMessageParseGenericEndpoint"/>
+                </call>
+            </default>
+        </switch>
+
+        <property name="messageType" scope="axis2" type="STRING" value="application/json"/>
+        <respond/>
+        </inSequence>
+        <outSequence/>
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-29] Analysis Failed"/>
+                <property name="Details" expression="get-property('ERROR_MESSAGE')"/>
+            </log>
+            <property name="HTTP_SC" scope="axis2" type="STRING" value="500"/>
+            <payloadFactory media-type="json">
+                <format>{"messageId": "ERROR", "parsed": false, "error": "$1"}</format>
+                <args>
+                    <arg evaluator="xml" expression="get-property('ERROR_MESSAGE')"/>
+                </args>
+            </payloadFactory>
+            <respond/>
+        </faultSequence>
+    </resource>
+    <!-- UC 30-->
+    <resource methods="POST" uri-template="/store">
+    <inSequence>
+    <property expression="//messageId/text()" name="messageId" scope="default" type="STRING"/>
+    <property expression="//requestId/text() | //parsedContent//requestId/text()" name="requestId" scope="default" type="STRING"/>
+    <property expression="//procedureCode/text() | //parsedContent//procedureCode/text()" name="procedureCode" scope="default" type="STRING"/>
+    <property expression="//registrationId/text() | //parsedContent//registrationId/text()" name="registrationId" scope="default" type="STRING"/>
+        <log level="custom">
+            <property name="Status" value="[UC-30] Storing Message Content"/>
+            <property name="messageId" expression="get-property('messageId')"/>
+            <property name="requestId" expression="get-property('requestId')"/>
+            <property name="procedureCode" expression="get-property('procedureCode')"/>
+            <property name="registrationId" expression="get-property('registrationId')"/>
+        </log>
+
+        <switch source="get-property('procedureCode')">
+            <case regex="PROC_URGENT">
+                <call>
+                    <endpoint key="BackendMessageStoreUrgentEndpoint"/>
+                </call>
+            </case>
+            <case regex="PROC_ARCHIVE">
+                <call>
+                    <endpoint key="BackendMessageStoreArchiveEndpoint"/>
+                </call>
+            </case>
+            <default>
+                <call>
+                    <endpoint key="BackendMessageStoreStandardEndpoint"/>
+                </call>
+            </default>
+        </switch>
+
+        <respond/>
+    </inSequence>
+    <outSequence/>
+    <faultSequence>
+        <log level="custom">
+            <property name="Error" value="[UC-30] Storage Failed"/>
+            <property name="messageId" expression="get-property('messageId')"/>
+            <property name="FaultMessage" expression="get-property('ERROR_MESSAGE')"/>
+        </log>
+        <payloadFactory media-type="xml">
+            <format>
+                <error>
+                    <uc>UC-30</uc>
+                    <message>Lưu trữ thông điệp thất bại</message>
+                    <detail>$1</detail>
+                </error>
+            </format>
+            <args>
+                <arg evaluator="xml" expression="get-property('ERROR_MESSAGE')"/>
+            </args>
+        </payloadFactory>
+        <respond/>
+    </faultSequence>
+</resource>
+</api>

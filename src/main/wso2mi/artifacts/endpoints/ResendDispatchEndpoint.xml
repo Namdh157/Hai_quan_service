@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<endpoint name="ResendDispatchEndpoint" xmlns="http://ws.apache.org/ns/synapse">
+    <http method="post" uri-template="http://192.168.0.133:8080//api/v1/routing/resend/{messageId}">
+        <suspendOnFailure>
+            <initialDuration>2000</initialDuration>
+            <progressionFactor>1.0</progressionFactor>
+            <maximumDuration>3000</maximumDuration>
+        </suspendOnFailure>
+        <markForSuspension>
+            <retriesBeforeSuspension>0</retriesBeforeSuspension>
+        </markForSuspension>
+    </http>
+</endpoint>

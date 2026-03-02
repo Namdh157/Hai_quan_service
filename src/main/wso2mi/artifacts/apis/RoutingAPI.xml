@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/api/v1/routing" name="RoutingAPI" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- UC-26: Dispatch Resource from previous request -->
+    <resource methods="POST" uri-template="/dispatch">
+        <inSequence>
+            <property name="requestId" expression="//requestId/text()"/>
+            <property name="registrationId" expression="//registrationId/text()"/>
+            <property name="procedureCode" expression="//procedureCode/text()"/>
+            <log level="custom">
+                <property name="Status" value="\[UC-26\] Received Routing Request"/>
+                <property name="requestId" expression="get-property('requestId')"/>
+                <property name="registrationId" expression="get-property('registrationId')"/>
+                <property name="procedureCode" expression="get-property('procedureCode')"/>
+            </log>
+            <switch source="get-property('procedureCode')">
+                <case regex="HQ01">
+                    <log level="custom">
+                        <property name="Status" value="\[UC-26\] Routing to HQ Subsystem"/>
+                    </log>
+                    <call>
+                        <endpoint key="BackendRoutingDispathEndpoint"/>
+                    </call>
+                </case>
+                <!-- Thêm các case khác cho procedureCode tại đây -->
+                <default>
+                    <log level="custom">
+                        <property name="Status" value="\[UC-26\] Routing Failed - Unknown procedureCode"/>
+                        <property name="procedureCode" expression="get-property('procedureCode')"/>
+                    </log>
+                    <!-- Tạo response lỗi -->
+                    <payloadFactory media-type="xml">
+                        <format>
+                            <error>
+                                <message>Routing failed: Unknown procedureCode</message>
+                                <procedureCode>$1</procedureCode>
+                            </error>
+                        </format>
+                        <args>
+                            <arg evaluator="xml" expression="get-property('procedureCode')"/>
+                        </args>
+                    </payloadFactory>
+                    <property name="HTTP_SC" value="400" scope="axis2"/>
+                </default>
+            </switch>
+            <respond/>
+        </inSequence>
+        <outSequence/>
+        <faultSequence>
+            <log level="full">
+                <property name="Status" value="\[UC-26\] Fault Occurred"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+    <!-- UC-27: Resend Resource -->
+    <resource methods="POST" uri-template="/resend/{messageId}">
+        <inSequence>
+            <property name="messageId" expression="$ctx:uri.var.messageId"/>
+            <log level="custom">
+                <property name="Status" value="\[UC-27\] Received Resend Request"/>
+                <property name="messageId" expression="get-property('messageId')"/>
+            </log>
+            <!-- Step 1: Call backend to get message status (assuming this logic exists) -->
+            <call>
+                <endpoint key="GetMessageStatusEndpoint"/>
+            </call>
+            <!-- Step 2: Check status. Filter for 'FAILED' status -->
+            <filter source="//status/text()" regex="FAILED">
+                <then>
+                    <log level="custom">
+                        <property name="Status" value="\[UC-27\] Status is FAILED. Proceeding to resend."/>
+                        <property name="messageId" expression="get-property('messageId')"/>
+                    </log>
+                    <!-- Resend the message -->
+                    <call>
+                        <endpoint key="ResendDispatchEndpoint"/>
+                    </call>
+                    <!-- Create success response -->
+                    <payloadFactory media-type="json">
+                        <format>
+                            {
+                                "messageId": "$1",
+                                "status": "RESENT"
+                            }
+                        </format>
+                        <args>
+                            <arg evaluator="xml" expression="get-property('messageId')"/>
+                        </args>
+                    </payloadFactory>
+                </then>
+                <else>
+                    <log level="custom">
+                        <property name="Status" value="\[UC-27\] Resend Rejected. Message not in FAILED state."/>
+                        <property name="messageId" expression="get-property('messageId')"/>
+                    </log>
+                    <payloadFactory media-type="json">
+                        <format>
+                            {
+                                "error": "Message cannot be resent",
+                                "messageId": "$1",
+                                "reason": "Message is not in a FAILED state."
+                            }
+                        </format>
+                        <args>
+                            <arg evaluator="xml" expression="get-property('messageId')"/>
+                        </args>
+                    </payloadFactory>
+                    <property name="HTTP_SC" value="409" scope="axis2"/> <!-- 409 Conflict -->
+                </else>
+            </filter>
+            <property name="messageType" value="application/json" scope="axis2"/>
+            <respond/>
+        </inSequence>
+        <outSequence/>
+        <faultSequence>
+            <log level="custom">
+                <property name="Status" value="\[UC-27\] Fault Occurred During Resend"/>
+                <property name="messageId" expression="get-property('messageId')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+    <!-- UC-28: Gửi lại nhiều thông điệp -->
+    <resource methods="POST"
+              uri-template="/resend">
+        <inSequence>
+            <!-- Extract Fields -->
+            <property name="procedureCode"
+                      expression="//procedureCode/text()"
+                      scope="default"/>
+            <property name="messageCount"
+                      expression="count(//messageIds/item)"
+                      scope="default"/>
+            <!-- Log Request -->
+            <log level="custom">
+                <property name="UseCase" value="[UC-28] Resend Batch Messages"/>
+                <property name="procedureCode" expression="get-property('procedureCode')"/>
+                <property name="messageCount" expression="get-property('messageCount')"/>
+            </log>
+            <!-- Switch by procedureCode -->
+            <switch source="get-property('procedureCode')">
+                <case regex=".*">
+                    <call>
+                        <endpoint key="BackendRoutingResendBatchEndpoint"/>
+                    </call>
+                </case>
+                <default>
+                    <property name="HTTP_SC" value="400" scope="axis2"/>
+                    <payloadFactory media-type="xml">
+                        <format>
+                            <error>
+                                <code>400</code>
+                                <message>Invalid procedureCode</message>
+                            </error>
+                        </format>
+                        <args/>
+                    </payloadFactory>
+                    <respond/>
+                </default>
+            </switch>
+            <respond/>
+        </inSequence>
+        <outSequence/>
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-28] Failed"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+</api>
