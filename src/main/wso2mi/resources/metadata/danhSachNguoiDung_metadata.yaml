@@ -1,0 +1,10 @@
+---
+key: "danhSachNguoiDung-1.0.0"
+name : "danhSachNguoiDung"
+displayName : "danhSachNguoiDung"
+description: "danhSachNguoiDung"
+version: "1.0.0"
+serviceUrl: "https://{MI_HOST}:{MI_PORT}/danhsachnguoidung"
+definitionType: "OAS3"
+securityType: "BASIC"
+mutualSSLEnabled: false

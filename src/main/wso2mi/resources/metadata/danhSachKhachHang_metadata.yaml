@@ -1,0 +1,10 @@
+---
+key: "danhSachKhachHang-1.0.0"
+name : "danhSachKhachHang"
+displayName : "danhSachKhachHang"
+description: "danhSachKhachHang"
+version: "1.0.0"
+serviceUrl: "https://{MI_HOST}:{MI_PORT}/danhsachkhachhang"
+definitionType: "OAS3"
+securityType: "BASIC"
+mutualSSLEnabled: false

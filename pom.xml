@@ -181,7 +181,7 @@
                                     <trustStorePath>C:\Users\wso2mi-4.4.0\repository\resources\security\client-truststore.jks</trustStorePath>
                                     <trustStorePassword>wso2carbon</trustStorePassword>
                                     <trustStoreType>JKS</trustStoreType>
-                                    <serverUrl>http://192.168.0.167:9201</serverUrl>
+                                    <serverUrl>http://192.168.0.225:9201</serverUrl>
                                     <userName>adminvp</userName>
                                     <password>admin</password>
                                     <serverType>mi</serverType>

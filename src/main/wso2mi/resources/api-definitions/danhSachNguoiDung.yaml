@@ -1,0 +1,14 @@
+openapi: 3.0.1
+info:
+  title: danhSachNguoiDung
+  description: API Definition of danhSachNguoiDung
+  version: 1.0.0
+servers:
+- url: http://localhost:8290/danhsachnguoidung
+- url: https://localhost:8253/danhsachnguoidung
+paths:
+  /:
+    get:
+      responses:
+        default:
+          description: Default response
