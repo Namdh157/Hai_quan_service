@@ -1,0 +1,263 @@
+openapi: 3.0.1
+info:
+  title: TTHCHQ_API_UC22_UC34
+  description: API Definition of ReceivingAPI
+  version: 1.0.0
+servers:
+- url: http://localhost:8290/api/v1
+- url: https://localhost:8253/api/v1
+paths:
+  /receiving/registrations:
+    post:
+      requestBody:
+        description: Sample Payload
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payload:
+                  type: object
+          application/xml:
+            schema:
+              type: object
+              xml:
+                name: payload
+        required: false
+      responses:
+        default:
+          description: Default response
+  /receiving/registrations/{registrationId}/amend:
+    post:
+      parameters:
+      - name: registrationId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        description: Sample Payload
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payload:
+                  type: object
+          application/xml:
+            schema:
+              type: object
+              xml:
+                name: payload
+        required: false
+      responses:
+        default:
+          description: Default response
+  /receiving/registrations/{registrationId}/cancel:
+    post:
+      parameters:
+      - name: registrationId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        description: Sample Payload
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payload:
+                  type: object
+          application/xml:
+            schema:
+              type: object
+              xml:
+                name: payload
+        required: false
+      responses:
+        default:
+          description: Default response
+  /signature/verify:
+    post:
+      requestBody:
+        description: Sample Payload
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payload:
+                  type: object
+          application/xml:
+            schema:
+              type: object
+              xml:
+                name: payload
+        required: false
+      responses:
+        default:
+          description: Default response
+  /routing/dispatch:
+    post:
+      requestBody:
+        description: Sample Payload
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payload:
+                  type: object
+          application/xml:
+            schema:
+              type: object
+              xml:
+                name: payload
+        required: false
+      responses:
+        default:
+          description: Default response
+  /routing/resend/{messageId}:
+    post:
+      parameters:
+      - name: messageId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        description: Sample Payload
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payload:
+                  type: object
+          application/xml:
+            schema:
+              type: object
+              xml:
+                name: payload
+        required: false
+      responses:
+        default:
+          description: Default response
+  /routing/resend:
+    post:
+      requestBody:
+        description: Sample Payload
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payload:
+                  type: object
+          application/xml:
+            schema:
+              type: object
+              xml:
+                name: payload
+        required: false
+      responses:
+        default:
+          description: Default response
+  /messages/parse:
+    post:
+      requestBody:
+        description: Sample Payload
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payload:
+                  type: object
+          application/xml:
+            schema:
+              type: object
+              xml:
+                name: payload
+        required: false
+      responses:
+        default:
+          description: Default response
+  /messages/store:
+    post:
+      requestBody:
+        description: Sample Payload
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payload:
+                  type: object
+          application/xml:
+            schema:
+              type: object
+              xml:
+                name: payload
+        required: false
+      responses:
+        default:
+          description: Default response
+  /response/package:
+    post:
+      requestBody:
+        description: Sample Payload
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payload:
+                  type: object
+          application/xml:
+            schema:
+              type: object
+              xml:
+                name: payload
+        required: false
+      responses:
+        default:
+          description: Default response
+  /response/receive:
+    post:
+      requestBody:
+        description: Sample Payload
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payload:
+                  type: object
+          application/xml:
+            schema:
+              type: object
+              xml:
+                name: payload
+        required: false
+      responses:
+        default:
+          description: Default response
+  /response/{registrationId}:
+    get:
+      parameters:
+      - name: registrationId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        default:
+          description: Default response
+  /response:
+    get:
+      responses:
+        default:
+          description: Default response

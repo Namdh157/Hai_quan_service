@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<endpoint name="BackendResponseQueryByEnterpriseEndpoint" xmlns="http://ws.apache.org/ns/synapse">
+    <http method="get" uri-template="http://YOUR-BACKEND-HOST:PORT/api/v1/response"/>
+</endpoint>
