@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<endpoint name="BackendAuthLogoutForceEndpoint" xmlns="http://ws.apache.org/ns/synapse">
+    <http method="post" uri-template="http://192.168.0.133:8080/api/v1/auth/logout">
+        <suspendOnFailure>
+            <initialDuration>500</initialDuration>
+            <progressionFactor>1.0</progressionFactor>
+            <maximumDuration>1000</maximumDuration>
+        </suspendOnFailure>
+    </http>
+</endpoint>

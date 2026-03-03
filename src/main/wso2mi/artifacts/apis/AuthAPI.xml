@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/authapi" name="AuthAPI" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- uc 35 -->
+    <resource methods="POST" uri-template="/login">
+        <inSequence>
+        <property expression="//username/text()" name="username" scope="default" type="STRING"/>
+        <property expression="//clientIp/text()" name="clientIp" scope="default" type="STRING"/>
+        <property expression="//procedureCode/text()" name="procedureCode" scope="default" type="STRING"/>
+            <log level="custom">
+                <property name="Status" value="[UC-35] System Login Request"/>
+                <property name="User" expression="get-property('username')"/>
+                <property name="IP" expression="get-property('clientIp')"/>
+                <property name="procedureCode" expression="get-property('procedureCode')"/>
+            </log>
+            <switch source="get-property('procedureCode')">
+                <case regex="INTERNAL">
+                    <call>
+                        <endpoint key="BackendAuthLoginInternalEndpoint"/>
+                    </call>
+                </case>
+                <case regex="EXTERNAL">
+                    <call>
+                        <endpoint key="BackendAuthLoginExternalEndpoint"/>
+                    </call>
+                </case>
+                <default>
+                    <call>
+                        <endpoint key="BackendAuthLoginEndpoint"/>
+                    </call>
+                </default>
+            </switch>
+            <property name="messageType" scope="axis2" type="STRING" value="application/json"/>
+            <respond/>
+        </inSequence>
+        <outSequence/>
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-35] Authentication Failed"/>
+                <property name="User" expression="get-property('username')"/>
+                <property name="ErrorCode" expression="get-property('ERROR_CODE')"/>
+            </log>
+            <filter source="get-property('ERROR_CODE')" regex="423|get-property('HTTP_SC')">
+                <then>
+                    <payloadFactory media-type="json">
+                        <format>{"errorCode": "AUTH_002", "message": "Tài khoản bị khóa"}</format>
+                        <args/>
+                    </payloadFactory>
+                </then>
+                <else>
+                    <payloadFactory media-type="json">
+                        <format>{"errorCode": "AUTH_001", "message": "Sai tên đăng nhập hoặc mật khẩu"}</format>
+                        <args/>
+                    </payloadFactory>
+                </else>
+            </filter>
+            <property name="messageType" scope="axis2" type="STRING" value="application/json"/>
+            <respond/>
+        </faultSequence>
+    </resource>
+    <!-- uc 36 -->
+    <resource methods="GET" uri-template="/profile">
+        <inSequence>
+        <property expression="$url:procedureCode" name="procedureCode" scope="default" type="STRING"/>
+        <property expression="$url:userId" name="userId" scope="default" type="STRING"/>
+        <property expression="$trp:X-Request-Id" name="requestId" scope="default" type="STRING"/>
+            <log level="custom">
+                <property name="Status" value="[UC-36] View Profile Request"/>
+                <property name="userId" expression="get-property('userId')"/>
+                <property name="procedureCode" expression="get-property('procedureCode')"/>
+            </log>
+
+            <switch source="get-property('procedureCode')">
+                <case regex="FETCH_FULL">
+                    <call>
+                        <endpoint key="BackendAuthProfileFullEndpoint"/>
+                    </call>
+                </case>
+                <case regex="FETCH_BASIC">
+                    <call>
+                        <endpoint key="BackendAuthProfileBasicEndpoint"/>
+                    </call>
+                </case>
+                <default>
+                    <call>
+                        <endpoint key="BackendAuthProfileDefaultEndpoint"/>
+                    </call>
+                </default>
+            </switch>
+            <respond/>
+        </inSequence>
+        <outSequence/>
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-36] Failed to fetch profile"/>
+                <property name="Details" expression="get-property('ERROR_MESSAGE')"/>
+            </log>
+            <payloadFactory media-type="xml">
+                <format>
+                    <error>
+                        <code>AUTH_PROFILE_ERR</code>
+                        <message>Không thể lấy thông tin tài khoản</message>
+                    </error>
+                </format>
+                <args/>
+            </payloadFactory>
+            <respond/>
+        </faultSequence>
+    </resource>
+    <!-- uc37-->
+    <resource methods="POST" uri-template="/logout">
+        <inSequence>
+        <property expression="//procedureCode/text() | $trp:X-Procedure-Code" name="procedureCode" scope="default" type="STRING"/>
+        <property expression="//requestId/text() | $trp:X-Request-Id" name="requestId" scope="default" type="STRING"/>
+        <property expression="$trp:Authorization" name="accessToken" scope="default" type="STRING"/>
+            <log level="custom">
+                <property name="Status" value="[UC-37] Logout Request Initiated"/>
+                <property name="requestId" expression="get-property('requestId')"/>
+                <property name="procedureCode" expression="get-property('procedureCode')"/>
+            </log>
+            <switch source="get-property('procedureCode')">
+                <case regex="SSO_LOGOUT">
+                    <call>
+                        <endpoint key="BackendAuthLogoutSSOEndpoint"/>
+                    </call>
+                </case>
+                <case regex="FORCE_LOGOUT">
+                    <call>
+                        <endpoint key="BackendAuthLogoutForceEndpoint"/>
+                    </call>
+                </case>
+                <default>
+                    <call>
+                        <endpoint key="BackendAuthLogoutStandardEndpoint"/>
+                    </call>
+                </default>
+            </switch>
+            <payloadFactory media-type="json">
+                <format>{"loggedOut": true}</format>
+                <args/>
+            </payloadFactory>
+            <property name="messageType" scope="axis2" type="STRING" value="application/json"/>
+            <respond/>
+        </inSequence>
+        <outSequence/>
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-37] Logout Failed"/>
+                <property name="requestId" expression="get-property('requestId')"/>
+                <property name="Details" expression="get-property('ERROR_MESSAGE')"/>
+            </log>
+            <payloadFactory media-type="json">
+                <format>{"loggedOut": false, "error": "$1"}</format>
+                <args>
+                    <arg evaluator="xml" expression="get-property('ERROR_MESSAGE')"/>
+                </args>
+            </payloadFactory>
+            <property name="messageType" scope="axis2" type="STRING" value="application/json"/>
+            <respond/>
+        </faultSequence>
+    </resource>
+</api>
