@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<endpoint name="BackendResponseQueryOneEndpoint" xmlns="http://ws.apache.org/ns/synapse">
+    <http method="get"   uri-template="http://192.168.0.133:8080/api/v1/response/{registrationId}">
+        <suspendOnFailure>
+            <initialDuration>2000</initialDuration>
+            <progressionFactor>1.0</progressionFactor>
+            <maximumDuration>3000</maximumDuration>
+        </suspendOnFailure>
+    </http>
+</endpoint>
