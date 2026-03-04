@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/api/v1/response"
+     name="ResponseAPI"
+     xmlns="http://ws.apache.org/ns/synapse">
+
+    <!-- ================================================= -->
+    <!-- UC-31: Response Packaging -->
+    <!-- ================================================= -->
+    <resource methods="POST" uri-template="/package">
+        <inSequence>
+
+            <!-- Read Content-Type -->
+            <property name="contentType"
+                      expression="get-property('axis2','ContentType')"
+                      scope="default"/>
+
+            <!-- Extract Request Fields -->
+            <property name="registrationId"
+                      expression="//registrationId/text()"
+                      scope="default"/>
+            <property name="procedureCode"
+                      expression="//procedureCode/text()"
+                      scope="default"/>
+            <property name="responseCode"
+                      expression="//responseCode/text()"
+                      scope="default"/>
+            <property name="responseMessage"
+                      expression="//responseMessage/text()"
+                      scope="default"/>
+
+            <!-- Log -->
+            <log level="custom">
+                <property name="UseCase" value="[UC-31] Response Packaging"/>
+                <property name="registrationId" expression="get-property('registrationId')"/>
+                <property name="procedureCode" expression="get-property('procedureCode')"/>
+                <property name="responseCode" expression="get-property('responseCode')"/>
+            </log>
+
+            <!-- Validate mandatory -->
+            <filter xpath="string-length(get-property('registrationId')) = 0
+                           or string-length(get-property('responseCode')) = 0
+                           or string-length(get-property('responseMessage')) = 0">
+
+                <then>
+                    <property name="HTTP_SC" value="400" scope="axis2"/>
+                    <payloadFactory media-type="xml">
+                        <format>
+                            <error>
+                                <code>400</code>
+                                <message>Missing mandatory fields</message>
+                            </error>
+                        </format>
+                        <args/>
+                    </payloadFactory>
+                    <respond/>
+                </then>
+
+                <else>
+                    <http.post configKey="BackendConnection">
+                        <relativePath>/api/v1/responses/package</relativePath>
+                        <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
+                        <responseVariable>packageResponse</responseVariable>
+                    </http.post>
+                </else>
+
+            </filter>
+
+            <respond/>
+
+        </inSequence>
+
+        <outSequence/>
+
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-31] Failed"/>
+                <property name="registrationId" expression="get-property('registrationId')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+
+    </resource>
+
+
+    <!-- ================================================= -->
+    <!-- UC-32: Receive Response -->
+    <!-- ================================================= -->
+    <resource methods="POST" uri-template="/receive">
+        <inSequence>
+
+            <property name="contentType"
+                      expression="get-property('axis2','ContentType')"
+                      scope="default"/>
+
+            <property name="responseId"
+                      expression="//responseId/text()"
+                      scope="default"/>
+            <property name="registrationId"
+                      expression="//registrationId/text()"
+                      scope="default"/>
+
+            <!-- Log -->
+            <log level="custom">
+                <property name="UseCase" value="[UC-32] Receive Response"/>
+                <property name="responseId" expression="get-property('responseId')"/>
+                <property name="registrationId" expression="get-property('registrationId')"/>
+            </log>
+
+            <!-- Validate -->
+            <filter xpath="string-length(get-property('responseId')) = 0
+                           or string-length(get-property('registrationId')) = 0">
+
+                <then>
+                    <property name="HTTP_SC" value="400" scope="axis2"/>
+                    <payloadFactory media-type="xml">
+                        <format>
+                            <error>
+                                <code>400</code>
+                                <message>Missing mandatory fields</message>
+                            </error>
+                        </format>
+                        <args/>
+                    </payloadFactory>
+                    <respond/>
+                </then>
+
+                <else>
+                    <http.post configKey="BackendConnection">
+                        <relativePath>/api/v1/responses/receive</relativePath>
+                        <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
+                        <responseVariable>receiveResponse</responseVariable>
+                    </http.post>
+                </else>
+
+            </filter>
+
+            <respond/>
+
+        </inSequence>
+
+        <outSequence/>
+
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-32] Failed"/>
+                <property name="responseId" expression="get-property('responseId')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+
+    </resource>
+
+
+    <!-- ================================================= -->
+    <!-- UC-33: Query Single -->
+    <!-- ================================================= -->
+    <resource methods="GET" uri-template="/{registrationId}">
+        <inSequence>
+
+            <property name="registrationId"
+                      expression="get-property('uri.var.registrationId')"
+                      scope="default"/>
+
+            <!-- Log -->
+            <log level="custom">
+                <property name="UseCase" value="[UC-33] Query Single Response"/>
+                <property name="registrationId" expression="get-property('registrationId')"/>
+            </log>
+
+            <http.get configKey="BackendConnection">
+                <relativePath>
+                    /api/v1/responses/{$ctx:registrationId}
+                </relativePath>
+            </http.get>
+
+            <respond/>
+
+        </inSequence>
+
+        <outSequence/>
+
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-33] Failed"/>
+                <property name="registrationId" expression="get-property('registrationId')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+
+    </resource>
+
+
+    <!-- ================================================= -->
+    <!-- UC-34: Query By Enterprise -->
+    <!-- ================================================= -->
+    <resource methods="GET" uri-template="">
+        <inSequence>
+
+            <property name="enterpriseId"
+                      expression="get-property('query.param.enterpriseId')"
+                      scope="default"/>
+
+            <property name="status"
+                      expression="get-property('query.param.status')"
+                      scope="default"/>
+
+            <!-- Log -->
+            <log level="custom">
+                <property name="UseCase" value="[UC-34] Query By Enterprise"/>
+                <property name="enterpriseId" expression="get-property('enterpriseId')"/>
+                <property name="status" expression="get-property('status')"/>
+            </log>
+
+            <!-- Validate enterpriseId -->
+            <filter xpath="string-length(get-property('enterpriseId')) = 0">
+
+                <then>
+                    <property name="HTTP_SC" value="400" scope="axis2"/>
+                    <payloadFactory media-type="xml">
+                        <format>
+                            <error>
+                                <code>400</code>
+                                <message>enterpriseId is required</message>
+                            </error>
+                        </format>
+                        <args/>
+                    </payloadFactory>
+                    <respond/>
+                </then>
+
+                <else>
+                    <http.get configKey="BackendConnection">
+                        <relativePath>
+                            /api/v1/responses?enterpriseId={$ctx:enterpriseId}&amp;status={$ctx:status}
+                        </relativePath>
+                    </http.get>
+                </else>
+
+            </filter>
+
+            <respond/>
+
+        </inSequence>
+
+        <outSequence/>
+
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-34] Failed"/>
+                <property name="enterpriseId" expression="get-property('enterpriseId')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+
+    </resource>
+
+</api>
