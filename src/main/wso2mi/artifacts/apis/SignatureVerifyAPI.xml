@@ -5,6 +5,8 @@
         <inSequence>
             <!-- Đọc Content-Type từ request để forward xuống backend -->
             <property name="contentType" expression="get-property('axis2', 'ContentType')" scope="default"/>
+            <!-- Load Backend Auth Token -->
+            <property name="authToken" expression="get-property('registry', 'local://BackendAuthToken')" scope="default"/>
             <!-- Extract Request Fields -->
             <property name="requestId"
                       expression="//requestId/text()"
@@ -51,7 +53,7 @@
                 <else>
                     <http.post configKey="BackendConnection">
                         <relativePath>/api/v1/signature/verify</relativePath>
-                        <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
+                        <headers>[["Content-Type","{$ctx:contentType}"],["Authorization","{$ctx:authToken}"]]</headers>
                         <responseVariable>verifyResponse</responseVariable>
                     </http.post>
                 </else>
