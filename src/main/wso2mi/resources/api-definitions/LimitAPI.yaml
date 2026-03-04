@@ -1,0 +1,14 @@
+openapi: 3.0.1
+info:
+  title: LimitAPI
+  description: API Definition of LimitAPI
+  version: 1.0.0
+servers:
+- url: http://localhost:8290/api/v1/limits
+- url: https://localhost:8253/api/v1/limits
+paths:
+  /:
+    get:
+      responses:
+        default:
+          description: Default response

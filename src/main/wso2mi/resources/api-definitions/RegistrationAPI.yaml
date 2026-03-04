@@ -25,3 +25,55 @@ paths:
       responses:
         default:
           description: Default response
+  /{registrationId}/documents:
+    get:
+      parameters:
+      - name: registrationId
+        in: path
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      responses:
+        default:
+          description: Default response
+  /{registrationId}/history:
+    get:
+      parameters:
+      - name: registrationId
+        in: path
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      responses:
+        default:
+          description: Default response
+  /{registrationId}/status:
+    get:
+      parameters:
+      - name: registrationId
+        in: path
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      responses:
+        default:
+          description: Default response
+  /{registrationId}/response:
+    get:
+      parameters:
+      - name: registrationId
+        in: path
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      responses:
+        default:
+          description: Default response

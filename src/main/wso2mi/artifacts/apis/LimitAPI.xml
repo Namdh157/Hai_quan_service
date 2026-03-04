@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/api/v1/limits" name="LimitAPI" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- uc 81 -->
+    <resource methods="POST" uri-template="/">
+        <inSequence>
+            <property name="contentType" expression="get-property('axis2', 'ContentType')" scope="default"/>
+            <property name="limitType" expression="//limitType/text()" scope="default" type="STRING"/>
+            <property name="target" expression="//target/text()" scope="default" type="STRING"/>
+            <property name="maxValue" expression="//maxValue/text()" scope="default" type="STRING"/>
+            <property name="timeWindow" expression="//timeWindow/text()" scope="default" type="STRING"/>
+            <property name="procedureCode" expression="//procedureCode/text() | $trp:X-Procedure-Code" scope="default" type="STRING"/>
+            <log level="custom">
+                <property name="Status" value="[UC-81] System Limit Configuration Request"/>
+                <property name="limitType" expression="get-property('limitType')"/>
+                <property name="target" expression="get-property('target')"/>
+                <property name="maxValue" expression="get-property('maxValue')"/>
+                <property name="timeWindow" expression="get-property('timeWindow')"/>
+                <property name="procedureCode" expression="get-property('procedureCode')"/>
+            </log>
+            <switch source="get-property('procedureCode')">
+                <case regex="LIMIT_URGENT">
+                    <http.post configKey="BackendLimitConnection">
+                        <relativePath>/api/v1/limits/urgent-update</relativePath>
+                        <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
+                        <responseVariable>limitResponse</responseVariable>
+                    </http.post>
+                </case>
+                <case regex="LIMIT_BATCH">
+                    <http.post configKey="BackendLimitConnection">
+                        <relativePath>/api/v1/limits/batch-update</relativePath>
+                        <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
+                        <responseVariable>limitResponse</responseVariable>
+                    </http.post>
+                </case>
+                <default>
+                    <http.post configKey="BackendLimitConnection">
+                        <relativePath>/api/v1/limits</relativePath>
+                        <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
+                        <responseVariable>limitResponse</responseVariable>
+                    </http.post>
+                </default>
+            </switch>
+            <property name="messageType" scope="axis2" type="STRING" value="application/json"/>
+            <respond/>
+        </inSequence>
+        <outSequence/>
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-81] Limit Configuration Failed"/>
+                <property name="Details" expression="get-property('ERROR_MESSAGE')"/>
+            </log>
+            <property name="HTTP_SC" scope="axis2" type="STRING" value="500"/>
+            <payloadFactory media-type="json">
+                <format>{
+                    "errorCode": "LIMIT_CONFIG_ERR",
+                    "status": "FAILED",
+                    "message": "Không thể thiết lập giới hạn hệ thống",
+                    "detail": "$1"
+                }</format>
+                <args>
+                    <arg evaluator="xml" expression="get-property('ERROR_MESSAGE')"/>
+                </args>
+            </payloadFactory>
+            <property name="messageType" scope="axis2" type="STRING" value="application/json"/>
+            <respond/>
+        </faultSequence>
+    </resource>
+    <!-- uc 82 -->
+    <resource methods="GET" uri-template="/">
+        <inSequence>
+            <property expression="$url:limitType" name="limitType" scope="default" type="STRING"/>
+            <property expression="$url:target" name="target" scope="default" type="STRING"/>
+            <property expression="$url:procedureCode" name="procedureCode" scope="default" type="STRING"/>
+            <property expression="$trp:X-Request-Id" name="requestId" scope="default" type="STRING"/>
+            <log level="custom">
+                <property name="Status" value="[UC-82] Searching Limit Configurations"/>
+                <property name="limitType" expression="get-property('limitType')"/>
+                <property name="target" expression="get-property('target')"/>
+                <property name="procedureCode" expression="get-property('procedureCode')"/>
+            </log>
+            <switch source="get-property('procedureCode')">
+                <case regex="LIMIT_READ_ONLY">
+                    <http.get configKey="BackendLimitConnection">
+                        <relativePath>/api/v1/limits/view</relativePath>
+                        <headers>[["Accept","application/json"]]</headers>
+                        <responseVariable>searchResponse</responseVariable>
+                    </http.get>
+                </case>
+                <default>
+                    <http.get configKey="BackendLimitConnection">
+                        <relativePath>/api/v1/limits</relativePath>
+                        <headers>[["Accept","application/json"]]</headers>
+                        <responseVariable>searchResponse</responseVariable>
+                    </http.get>
+                </default>
+            </switch>
+            <property name="messageType" scope="axis2" type="STRING" value="application/json"/>
+            <respond/>
+        </inSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-82] Search Limits Failed"/>
+                <property name="Details" expression="get-property('ERROR_MESSAGE')"/>
+            </log>
+            <payloadFactory media-type="json">
+                <format>{"errorCode": "LIMIT_SEARCH_ERR", "message": "Lỗi tra cứu cấu hình giới hạn"}</format>
+                <args/>
+            </payloadFactory>
+            <respond/>
+        </faultSequence>
+    </resource>
+    <resource methods="PUT" uri-template="/{limitId}">
+        <inSequence>
+            <property name="contentType" expression="get-property('axis2', 'ContentType')" scope="default"/>
+            <property expression="get-property('uri.var.limitId')" name="limitId" scope="default" type="STRING"/>
+            <property expression="//maxValue/text()" name="newMaxValue" scope="default" type="STRING"/>
+            <property expression="//actionOnExceed/text()" name="newAction" scope="default" type="STRING"/>
+            <property expression="//procedureCode/text() | $url:procedureCode" name="procedureCode" scope="default" type="STRING"/>
+            <log level="custom">
+                <property name="Status" value="[UC-82] Updating Limit Configuration (Audit Log)"/>
+                <property name="limitId" expression="get-property('limitId')"/>
+                <property name="newMaxValue" expression="get-property('newMaxValue')"/>
+                <property name="newAction" expression="get-property('newAction')"/>
+                <property name="procedureCode" expression="get-property('procedureCode')"/>
+            </log>
+            <switch source="get-property('procedureCode')">
+                <case regex="LIMIT_UPDATE_FORCE">
+                    <http.put configKey="BackendLimitConnection">
+                        <relativePath>/api/v1/limits/force/{$ctx:limitId}</relativePath>
+                        <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
+                        <responseVariable>updateResponse</responseVariable>
+                    </http.put>
+                </case>
+                <default>
+                    <http.put configKey="BackendLimitConnection">
+                        <relativePath>/api/v1/limits/{$ctx:limitId}</relativePath>
+                        <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
+                        <responseVariable>updateResponse</responseVariable>
+                    </http.put>
+                </default>
+            </switch>
+            <property name="messageType" scope="axis2" type="STRING" value="application/json"/>
+            <respond/>
+        </inSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-82] Update Limit Failed"/>
+                <property name="limitId" expression="get-property('limitId')"/>
+            </log>
+            <property name="HTTP_SC" scope="axis2" type="STRING" value="500"/>
+            <payloadFactory media-type="json">
+                <format>{"errorCode": "LIMIT_UPDATE_ERR", "message": "Cập nhật giới hạn thất bại", "id": "$1"}</format>
+                <args>
+                    <arg evaluator="xml" expression="get-property('limitId')"/>
+                </args>
+            </payloadFactory>
+            <respond/>
+        </faultSequence>
+    </resource>
+</api>
