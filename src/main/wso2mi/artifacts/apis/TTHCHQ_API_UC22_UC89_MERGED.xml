@@ -1,0 +1,950 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/api/v1" name="TTHCHQ_API_UC22_UC89" xmlns="http://ws.apache.org/ns/synapse">
+
+    <!-- ========================================================= -->
+    <!-- COMMON NOTE                                               -->
+    <!-- - Các endpoint key bên dưới cần tồn tại trong endpoints   -->
+    <!-- - Nếu backend trả JSON thì để auto passthrough            -->
+    <!-- - Nếu bạn muốn ép XML response, mình có thể thêm transform -->
+    <!-- ========================================================= -->
+
+    <!-- ========================================================= -->
+    <!-- UC-22: Tiếp nhận đăng ký hồ sơ                            -->
+    <!-- POST /api/v1/receiving/registrations                      -->
+    <!-- ========================================================= -->
+    <resource methods="POST" uri-template="/receiving/registrations">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-22] Received New Registration Request"/>
+                <property name="requestId" expression="//requestId/text()"/>
+                <property name="procedureCode" expression="//procedureCode/text()"/>
+                <property name="enterpriseId" expression="//enterpriseId/text()"/>
+            </log>
+
+            <call>
+                <endpoint key="BackendReceivingCreateEndpoint"/>
+            </call>
+
+            <respond/>
+        </inSequence>
+
+        <outSequence>
+            <respond/>
+        </outSequence>
+
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-22] Error Processing New Registration"/>
+                <property name="requestId" expression="//requestId/text()"/>
+                <property name="procedureCode" expression="//procedureCode/text()"/>
+                <property name="enterpriseId" expression="//enterpriseId/text()"/>
+                <property name="ERROR_CODE" expression="get-property('ERROR_CODE')"/>
+                <property name="ERROR_MESSAGE" expression="get-property('ERROR_MESSAGE')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- UC-23: Tiếp nhận sửa hồ sơ                                -->
+    <!-- POST /api/v1/receiving/registrations/{registrationId}/amend -->
+    <!-- ========================================================= -->
+    <resource methods="POST" uri-template="/receiving/registrations/{registrationId}/amend">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-23] Received Amend Registration Request"/>
+                <property name="registrationId" expression="get-property('uri.var.registrationId')"/>
+                <property name="requestId" expression="//requestId/text()"/>
+            </log>
+
+            <call>
+                <endpoint key="BackendReceivingAmendEndpoint"/>
+            </call>
+
+            <respond/>
+        </inSequence>
+
+        <outSequence>
+            <respond/>
+        </outSequence>
+
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-23] Error Processing Amend Registration"/>
+                <property name="registrationId" expression="get-property('uri.var.registrationId')"/>
+                <property name="requestId" expression="//requestId/text()"/>
+                <property name="ERROR_CODE" expression="get-property('ERROR_CODE')"/>
+                <property name="ERROR_MESSAGE" expression="get-property('ERROR_MESSAGE')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- UC-24: Tiếp nhận hủy hồ sơ                                -->
+    <!-- POST /api/v1/receiving/registrations/{registrationId}/cancel -->
+    <!-- ========================================================= -->
+    <resource methods="POST" uri-template="/receiving/registrations/{registrationId}/cancel">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-24] Received Cancel Registration Request"/>
+                <property name="registrationId" expression="get-property('uri.var.registrationId')"/>
+                <property name="requestId" expression="//requestId/text()"/>
+            </log>
+
+            <call>
+                <endpoint key="BackendReceivingCancelEndpoint"/>
+            </call>
+
+            <respond/>
+        </inSequence>
+
+        <outSequence>
+            <respond/>
+        </outSequence>
+
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-24] Error Processing Cancel Registration"/>
+                <property name="registrationId" expression="get-property('uri.var.registrationId')"/>
+                <property name="requestId" expression="//requestId/text()"/>
+                <property name="ERROR_CODE" expression="get-property('ERROR_CODE')"/>
+                <property name="ERROR_MESSAGE" expression="get-property('ERROR_MESSAGE')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- UC-25: Xác thực chữ ký số                                 -->
+    <!-- POST /api/v1/signature/verify                             -->
+    <!-- ========================================================= -->
+    <resource methods="POST" uri-template="/signature/verify">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-25] Received Signature Verify Request"/>
+                <property name="requestId" expression="//requestId/text()"/>
+            </log>
+
+            <call>
+                <endpoint key="BackendSignatureVerifyEndpoint"/>
+            </call>
+
+            <respond/>
+        </inSequence>
+
+        <outSequence>
+            <respond/>
+        </outSequence>
+
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-25] Error Verifying Signature"/>
+                <property name="requestId" expression="//requestId/text()"/>
+                <property name="ERROR_CODE" expression="get-property('ERROR_CODE')"/>
+                <property name="ERROR_MESSAGE" expression="get-property('ERROR_MESSAGE')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- UC-26: Định tuyến thông điệp                              -->
+    <!-- POST /api/v1/routing/dispatch                             -->
+    <!-- ========================================================= -->
+    <resource methods="POST" uri-template="/routing/dispatch">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-26] Received Routing Dispatch Request"/>
+                <property name="requestId" expression="//requestId/text()"/>
+                <property name="registrationId" expression="//registrationId/text()"/>
+                <property name="procedureCode" expression="//procedureCode/text()"/>
+            </log>
+
+            <call>
+                <endpoint key="BackendRoutingDispatchEndpoint"/>
+            </call>
+
+            <respond/>
+        </inSequence>
+
+        <outSequence>
+            <respond/>
+        </outSequence>
+
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-26] Error Routing Dispatch"/>
+                <property name="requestId" expression="//requestId/text()"/>
+                <property name="registrationId" expression="//registrationId/text()"/>
+                <property name="procedureCode" expression="//procedureCode/text()"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- UC-27: Gửi lại một thông điệp                             -->
+    <!-- POST /api/v1/routing/resend/{messageId}                   -->
+    <!-- ========================================================= -->
+    <resource methods="POST" uri-template="/routing/resend/{messageId}">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-27] Received Routing Resend One Request"/>
+                <property name="messageId" expression="get-property('uri.var.messageId')"/>
+            </log>
+
+            <call>
+                <endpoint key="BackendRoutingResendOneEndpoint"/>
+            </call>
+
+            <respond/>
+        </inSequence>
+
+        <outSequence>
+            <respond/>
+        </outSequence>
+
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-27] Error Routing Resend One"/>
+                <property name="messageId" expression="get-property('uri.var.messageId')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- UC-28: Gửi lại nhiều thông điệp                           -->
+    <!-- POST /api/v1/routing/resend                               -->
+    <!-- ========================================================= -->
+    <resource methods="POST" uri-template="/routing/resend">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-28] Received Routing Resend Batch Request"/>
+            </log>
+
+            <call>
+                <endpoint key="BackendRoutingResendBatchEndpoint"/>
+            </call>
+
+            <respond/>
+        </inSequence>
+
+        <outSequence>
+            <respond/>
+        </outSequence>
+
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-28] Error Routing Resend Batch"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- UC-29: Phân tích nội dung thông điệp                      -->
+    <!-- POST /api/v1/messages/parse                               -->
+    <!-- ========================================================= -->
+    <resource methods="POST" uri-template="/messages/parse">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-29] Received Message Parse Request"/>
+            </log>
+
+            <call>
+                <endpoint key="BackendMessageParseEndpoint"/>
+            </call>
+
+            <respond/>
+        </inSequence>
+
+        <outSequence>
+            <respond/>
+        </outSequence>
+
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-29] Error Message Parse"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- UC-30: Lưu trữ nội dung thông điệp                        -->
+    <!-- POST /api/v1/messages/store                               -->
+    <!-- ========================================================= -->
+    <resource methods="POST" uri-template="/messages/store">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-30] Received Message Store Request"/>
+                <property name="messageId" expression="//messageId/text()"/>
+            </log>
+
+            <call>
+                <endpoint key="BackendMessageStoreEndpoint"/>
+            </call>
+
+            <respond/>
+        </inSequence>
+
+        <outSequence>
+            <respond/>
+        </outSequence>
+
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-30] Error Message Store"/>
+                <property name="messageId" expression="//messageId/text()"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- UC-31: Đóng gói thông điệp trả lời                        -->
+    <!-- POST /api/v1/response/package                             -->
+    <!-- ========================================================= -->
+    <resource methods="POST" uri-template="/response/package">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-31] Received Response Package Request"/>
+                <property name="registrationId" expression="//registrationId/text()"/>
+                <property name="responseCode" expression="//responseCode/text()"/>
+            </log>
+
+            <call>
+                <endpoint key="BackendResponsePackageEndpoint"/>
+            </call>
+
+            <respond/>
+        </inSequence>
+
+        <outSequence>
+            <respond/>
+        </outSequence>
+
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-31] Error Response Package"/>
+                <property name="registrationId" expression="//registrationId/text()"/>
+                <property name="responseCode" expression="//responseCode/text()"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- UC-32: Nhận phản hồi từ hệ thống nghiệp vụ                -->
+    <!-- POST /api/v1/response/receive                             -->
+    <!-- ========================================================= -->
+    <resource methods="POST" uri-template="/response/receive">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-32] Received Response Receive Request"/>
+                <property name="responseId" expression="//responseId/text()"/>
+                <property name="registrationId" expression="//registrationId/text()"/>
+            </log>
+
+            <call>
+                <endpoint key="BackendResponseReceiveEndpoint"/>
+            </call>
+
+            <respond/>
+        </inSequence>
+
+        <outSequence>
+            <respond/>
+        </outSequence>
+
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-32] Error Response Receive"/>
+                <property name="responseId" expression="//responseId/text()"/>
+                <property name="registrationId" expression="//registrationId/text()"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- UC-33: Lấy phản hồi theo thông điệp                       -->
+    <!-- GET /api/v1/response/{registrationId}                     -->
+    <!-- ========================================================= -->
+    <resource methods="GET" uri-template="/response/{registrationId}">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-33] Received Response Query One Request"/>
+                <property name="registrationId" expression="get-property('uri.var.registrationId')"/>
+            </log>
+
+            <call>
+                <endpoint key="BackendResponseQueryOneEndpoint"/>
+            </call>
+
+            <respond/>
+        </inSequence>
+
+        <outSequence>
+            <respond/>
+        </outSequence>
+
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-33] Error Response Query One"/>
+                <property name="registrationId" expression="get-property('uri.var.registrationId')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- UC-34: Lấy danh sách phản hồi theo doanh nghiệp           -->
+    <!-- GET /api/v1/response?enterpriseId=...&status=...          -->
+    <!-- ========================================================= -->
+    <resource methods="GET" uri-template="/response">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-34] Received Response Query By Enterprise Request"/>
+                <property name="enterpriseId" expression="get-property('query.param.enterpriseId')"/>
+                <property name="status" expression="get-property('query.param.status')"/>
+            </log>
+
+            <!-- Validate enterpriseId là bắt buộc theo tài liệu -->
+            <filter xpath="string-length(normalize-space(get-property('query.param.enterpriseId'))) = 0">
+                <then>
+                    <payloadFactory media-type="json">
+                        <format>
+                            {
+                              "success": false,
+                              "error": {
+                                "code": "BAD_REQUEST",
+                                "message": "enterpriseId is required"
+                              }
+                            }
+                        </format>
+                        <args/>
+                    </payloadFactory>
+                    <property name="HTTP_SC" value="400" scope="axis2"/>
+                    <respond/>
+                </then>
+                <else>
+                    <call>
+                        <endpoint key="BackendResponseQueryByEnterpriseEndpoint"/>
+                    </call>
+                    <respond/>
+                </else>
+            </filter>
+        </inSequence>
+
+        <outSequence>
+            <respond/>
+        </outSequence>
+
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-34] Error Response Query By Enterprise"/>
+                <property name="enterpriseId" expression="get-property('query.param.enterpriseId')"/>
+                <property name="status" expression="get-property('query.param.status')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- MERGED FROM TTHC_API_UC73_UC89                            -->
+    <!-- ========================================================= -->
+
+
+    <!-- ========================================================= -->
+    <!-- UC-73: Tra cứu chi tiết hồ sơ                              -->
+    <!-- GET /api/v1/registrations/{registrationId}                -->
+    <!-- ========================================================= -->
+    <resource methods="GET" uri-template="/registrations/{registrationId}">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-73] Query Registration Detail"/>
+                <property name="registrationId" expression="get-property('uri.var.registrationId')"/>
+            </log>
+            <call>
+                <endpoint key="BackendRegistrationQueryOneEndpoint"/>
+            </call>
+            <respond/>
+        </inSequence>
+        <outSequence><respond/></outSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-73] Error Query Registration Detail"/>
+                <property name="registrationId" expression="get-property('uri.var.registrationId')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- UC-74: Tra cứu danh sách hồ sơ                             -->
+    <!-- GET /api/v1/registrations                                 -->
+    <!-- ========================================================= -->
+    <resource methods="GET" uri-template="/registrations">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-74] Query Registration List"/>
+                <property name="enterpriseId" expression="get-property('query.param.enterpriseId')"/>
+                <property name="procedureCode" expression="get-property('query.param.procedureCode')"/>
+                <property name="status" expression="get-property('query.param.status')"/>
+                <property name="fromDate" expression="get-property('query.param.fromDate')"/>
+                <property name="toDate" expression="get-property('query.param.toDate')"/>
+                <property name="page" expression="get-property('query.param.page')"/>
+                <property name="size" expression="get-property('query.param.size')"/>
+            </log>
+            <call>
+                <endpoint key="BackendRegistrationQueryListEndpoint"/>
+            </call>
+            <respond/>
+        </inSequence>
+        <outSequence><respond/></outSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-74] Error Query Registration List"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- UC-75: Tra cứu danh sách chứng từ hồ sơ                    -->
+    <!-- GET /api/v1/registrations/{registrationId}/documents      -->
+    <!-- ========================================================= -->
+    <resource methods="GET" uri-template="/registrations/{registrationId}/documents">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-75] Query Registration Documents"/>
+                <property name="registrationId" expression="get-property('uri.var.registrationId')"/>
+            </log>
+            <call>
+                <endpoint key="BackendRegistrationDocumentsEndpoint"/>
+            </call>
+            <respond/>
+        </inSequence>
+        <outSequence><respond/></outSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-75] Error Query Registration Documents"/>
+                <property name="registrationId" expression="get-property('uri.var.registrationId')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- UC-76: Tra cứu lịch sử xử lý hồ sơ                         -->
+    <!-- GET /api/v1/registrations/{registrationId}/history        -->
+    <!-- ========================================================= -->
+    <resource methods="GET" uri-template="/registrations/{registrationId}/history">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-76] Query Registration History"/>
+                <property name="registrationId" expression="get-property('uri.var.registrationId')"/>
+            </log>
+            <call>
+                <endpoint key="BackendRegistrationHistoryEndpoint"/>
+            </call>
+            <respond/>
+        </inSequence>
+        <outSequence><respond/></outSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-76] Error Query Registration History"/>
+                <property name="registrationId" expression="get-property('uri.var.registrationId')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- UC-77: Tra cứu trạng thái hồ sơ                            -->
+    <!-- GET /api/v1/registrations/{registrationId}/status         -->
+    <!-- ========================================================= -->
+    <resource methods="GET" uri-template="/registrations/{registrationId}/status">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-77] Query Registration Status"/>
+                <property name="registrationId" expression="get-property('uri.var.registrationId')"/>
+            </log>
+            <call>
+                <endpoint key="BackendRegistrationStatusEndpoint"/>
+            </call>
+            <respond/>
+        </inSequence>
+        <outSequence><respond/></outSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-77] Error Query Registration Status"/>
+                <property name="registrationId" expression="get-property('uri.var.registrationId')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- UC-78: Tra cứu phản hồi hồ sơ                              -->
+    <!-- GET /api/v1/registrations/{registrationId}/response       -->
+    <!-- ========================================================= -->
+    <resource methods="GET" uri-template="/registrations/{registrationId}/response">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-78] Query Registration Response"/>
+                <property name="registrationId" expression="get-property('uri.var.registrationId')"/>
+            </log>
+            <call>
+                <endpoint key="BackendRegistrationResponseEndpoint"/>
+            </call>
+            <respond/>
+        </inSequence>
+        <outSequence><respond/></outSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-78] Error Query Registration Response"/>
+                <property name="registrationId" expression="get-property('uri.var.registrationId')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- UC-79: Tạo cảnh báo                                        -->
+    <!-- POST /api/v1/alerts                                        -->
+    <!-- ========================================================= -->
+    <resource methods="POST" uri-template="/alerts">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-79] Create Alert"/>
+                <property name="alertType" expression="//alertType/text()"/>
+                <property name="severity" expression="//severity/text()"/>
+            </log>
+            <call>
+                <endpoint key="BackendAlertCreateEndpoint"/>
+            </call>
+            <respond/>
+        </inSequence>
+        <outSequence><respond/></outSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-79] Error Create Alert"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- UC-80: Tra cứu cảnh báo                                     -->
+    <!-- GET /api/v1/alerts                                          -->
+    <!-- ========================================================= -->
+    <resource methods="GET" uri-template="/alerts">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-80] Search Alerts"/>
+                <property name="severity" expression="get-property('query.param.severity')"/>
+                <property name="status" expression="get-property('query.param.status')"/>
+                <property name="fromTime" expression="get-property('query.param.fromTime')"/>
+                <property name="toTime" expression="get-property('query.param.toTime')"/>
+                <property name="page" expression="get-property('query.param.page')"/>
+                <property name="size" expression="get-property('query.param.size')"/>
+            </log>
+            <call>
+                <endpoint key="BackendAlertSearchEndpoint"/>
+            </call>
+            <respond/>
+        </inSequence>
+        <outSequence><respond/></outSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-80] Error Search Alerts"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- UC-80 (mở rộng): Xử lý cảnh báo (cập nhật trạng thái)      -->
+    <!-- PUT /api/v1/alerts/{alertId}                               -->
+    <!-- ========================================================= -->
+    <resource methods="PUT" uri-template="/alerts/{alertId}">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-80] Update Alert Status"/>
+                <property name="alertId" expression="get-property('uri.var.alertId')"/>
+                <property name="status" expression="//status/text()"/>
+                <property name="handledBy" expression="//handledBy/text()"/>
+            </log>
+            <call>
+                <endpoint key="BackendAlertUpdateEndpoint"/>
+            </call>
+            <respond/>
+        </inSequence>
+        <outSequence><respond/></outSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-80] Error Update Alert Status"/>
+                <property name="alertId" expression="get-property('uri.var.alertId')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- UC-81: Thiết lập giới hạn hệ thống                         -->
+    <!-- POST /api/v1/limits                                        -->
+    <!-- ========================================================= -->
+    <resource methods="POST" uri-template="/limits">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-81] Create Limit Config"/>
+                <property name="limitType" expression="//limitType/text()"/>
+                <property name="target" expression="//target/text()"/>
+                <property name="maxValue" expression="//maxValue/text()"/>
+                <property name="timeWindow" expression="//timeWindow/text()"/>
+                <property name="actionOnExceed" expression="//actionOnExceed/text()"/>
+            </log>
+            <call>
+                <endpoint key="BackendLimitConfigEndpoint"/>
+            </call>
+            <respond/>
+        </inSequence>
+        <outSequence><respond/></outSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-81] Error Create Limit Config"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- UC-82: Tra cứu giới hạn hệ thống                           -->
+    <!-- GET /api/v1/limits                                         -->
+    <!-- ========================================================= -->
+    <resource methods="GET" uri-template="/limits">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-82] Search Limits"/>
+                <property name="limitType" expression="get-property('query.param.limitType')"/>
+                <property name="target" expression="get-property('query.param.target')"/>
+            </log>
+            <call>
+                <endpoint key="BackendLimitSearchEndpoint"/>
+            </call>
+            <respond/>
+        </inSequence>
+        <outSequence><respond/></outSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-82] Error Search Limits"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- UC-82: Cập nhật giới hạn hệ thống                          -->
+    <!-- PUT /api/v1/limits                                         -->
+    <!-- ========================================================= -->
+    <resource methods="PUT" uri-template="/limits">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-82] Update Limit Config"/>
+                <property name="maxValue" expression="//maxValue/text()"/>
+                <property name="actionOnExceed" expression="//actionOnExceed/text()"/>
+            </log>
+            <call>
+                <endpoint key="BackendLimitUpdateEndpoint"/>
+            </call>
+            <respond/>
+        </inSequence>
+        <outSequence><respond/></outSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-82] Error Update Limit Config"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- UC-83: Đồng bộ danh mục dùng chung                         -->
+    <!-- POST /api/v1/sync/master-data                              -->
+    <!-- ========================================================= -->
+    <resource methods="POST" uri-template="/sync/master-data">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-83] Sync Master Data"/>
+                <property name="dataType" expression="//dataType/text()"/>
+                <property name="sourceSystem" expression="//sourceSystem/text()"/>
+                <property name="syncMode" expression="//syncMode/text()"/>
+                <property name="requestTime" expression="//requestTime/text()"/>
+            </log>
+            <call>
+                <endpoint key="BackendSyncMasterDataEndpoint"/>
+            </call>
+            <respond/>
+        </inSequence>
+        <outSequence><respond/></outSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-83] Error Sync Master Data"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- UC-84: Đồng bộ hồ sơ với hệ thống bên ngoài                -->
+    <!-- POST /api/v1/sync/registrations                            -->
+    <!-- ========================================================= -->
+    <resource methods="POST" uri-template="/sync/registrations">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-84] Sync Registration"/>
+                <property name="registrationId" expression="//registrationId/text()"/>
+                <property name="targetSystem" expression="//targetSystem/text()"/>
+                <property name="syncType" expression="//syncType/text()"/>
+            </log>
+            <call>
+                <endpoint key="BackendSyncRegistrationsEndpoint"/>
+            </call>
+            <respond/>
+        </inSequence>
+        <outSequence><respond/></outSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-84] Error Sync Registration"/>
+                <property name="registrationId" expression="//registrationId/text()"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- UC-85: Tra cứu trạng thái đồng bộ                          -->
+    <!-- GET /api/v1/sync/{syncId}/status                           -->
+    <!-- ========================================================= -->
+    <resource methods="GET" uri-template="/sync/{syncId}/status">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-85] Query Sync Status"/>
+                <property name="syncId" expression="get-property('uri.var.syncId')"/>
+            </log>
+            <call>
+                <endpoint key="BackendSyncStatusEndpoint"/>
+            </call>
+            <respond/>
+        </inSequence>
+        <outSequence><respond/></outSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-85] Error Query Sync Status"/>
+                <property name="syncId" expression="get-property('uri.var.syncId')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- UC-86: Đồng bộ lại dữ liệu bị lỗi                          -->
+    <!-- POST /api/v1/sync/{syncId}/retry                           -->
+    <!-- ========================================================= -->
+    <resource methods="POST" uri-template="/sync/{syncId}/retry">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-86] Retry Sync Failed Records"/>
+                <property name="syncId" expression="get-property('uri.var.syncId')"/>
+            </log>
+            <call>
+                <endpoint key="BackendSyncRetryEndpoint"/>
+            </call>
+            <respond/>
+        </inSequence>
+        <outSequence><respond/></outSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-86] Error Retry Sync Failed Records"/>
+                <property name="syncId" expression="get-property('uri.var.syncId')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- UC-87: Health Check                                        -->
+    <!-- GET /api/v1/monitoring/health                              -->
+    <!-- ========================================================= -->
+    <resource methods="GET" uri-template="/monitoring/health">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-87] Monitoring Health Check"/>
+                <property name="Authorization" expression="get-property('transport', 'Authorization')"/>
+            </log>
+            <call>
+                <endpoint key="BackendMonitoringHealthEndpoint"/>
+            </call>
+            <respond/>
+        </inSequence>
+        <outSequence><respond/></outSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-87] Error Monitoring Health Check"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- UC-88: Tra cứu thông số hiệu năng                          -->
+    <!-- GET /api/v1/monitoring/metrics                             -->
+    <!-- ========================================================= -->
+    <resource methods="GET" uri-template="/monitoring/metrics">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-88] Query Monitoring Metrics"/>
+                <property name="fromTime" expression="get-property('query.param.fromTime')"/>
+                <property name="toTime" expression="get-property('query.param.toTime')"/>
+            </log>
+            <call>
+                <endpoint key="BackendMonitoringMetricsEndpoint"/>
+            </call>
+            <respond/>
+        </inSequence>
+        <outSequence><respond/></outSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-88] Error Query Monitoring Metrics"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ========================================================= -->
+    <!-- UC-89: Tra cứu trạng thái hàng đợi xử lý                   -->
+    <!-- GET /api/v1/monitoring/queues                              -->
+    <!-- ========================================================= -->
+    <resource methods="GET" uri-template="/monitoring/queues">
+        <inSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-89] Query Queue Monitoring"/>
+            </log>
+            <call>
+                <endpoint key="BackendMonitoringQueuesEndpoint"/>
+            </call>
+            <respond/>
+        </inSequence>
+        <outSequence><respond/></outSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-89] Error Query Queue Monitoring"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+</api>

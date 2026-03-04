@@ -1,0 +1,254 @@
+openapi: 3.0.1
+info:
+  title: TTHC_API_UC73_UC89
+  description: API Definition of TTHC_API_UC73_UC89
+  version: 1.0.0
+servers:
+- url: http://localhost:8290/api/v1
+- url: https://localhost:8253/api/v1
+paths:
+  /registrations/{registrationId}:
+    get:
+      parameters:
+      - name: registrationId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        default:
+          description: Default response
+  /registrations:
+    get:
+      responses:
+        default:
+          description: Default response
+  /registrations/{registrationId}/documents:
+    get:
+      parameters:
+      - name: registrationId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        default:
+          description: Default response
+  /registrations/{registrationId}/history:
+    get:
+      parameters:
+      - name: registrationId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        default:
+          description: Default response
+  /registrations/{registrationId}/status:
+    get:
+      parameters:
+      - name: registrationId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        default:
+          description: Default response
+  /registrations/{registrationId}/response:
+    get:
+      parameters:
+      - name: registrationId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        default:
+          description: Default response
+  /alerts:
+    get:
+      responses:
+        default:
+          description: Default response
+    post:
+      requestBody:
+        description: Sample Payload
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payload:
+                  type: object
+          application/xml:
+            schema:
+              type: object
+              xml:
+                name: payload
+        required: false
+      responses:
+        default:
+          description: Default response
+  /alerts/{alertId}:
+    put:
+      parameters:
+      - name: alertId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        description: Sample Payload
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payload:
+                  type: object
+          application/xml:
+            schema:
+              type: object
+              xml:
+                name: payload
+        required: false
+      responses:
+        default:
+          description: Default response
+  /limits:
+    get:
+      responses:
+        default:
+          description: Default response
+    put:
+      requestBody:
+        description: Sample Payload
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payload:
+                  type: object
+          application/xml:
+            schema:
+              type: object
+              xml:
+                name: payload
+        required: false
+      responses:
+        default:
+          description: Default response
+    post:
+      requestBody:
+        description: Sample Payload
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payload:
+                  type: object
+          application/xml:
+            schema:
+              type: object
+              xml:
+                name: payload
+        required: false
+      responses:
+        default:
+          description: Default response
+  /sync/master-data:
+    post:
+      requestBody:
+        description: Sample Payload
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payload:
+                  type: object
+          application/xml:
+            schema:
+              type: object
+              xml:
+                name: payload
+        required: false
+      responses:
+        default:
+          description: Default response
+  /sync/registrations:
+    post:
+      requestBody:
+        description: Sample Payload
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payload:
+                  type: object
+          application/xml:
+            schema:
+              type: object
+              xml:
+                name: payload
+        required: false
+      responses:
+        default:
+          description: Default response
+  /sync/{syncId}/status:
+    get:
+      parameters:
+      - name: syncId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        default:
+          description: Default response
+  /sync/{syncId}/retry:
+    post:
+      parameters:
+      - name: syncId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        description: Sample Payload
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payload:
+                  type: object
+          application/xml:
+            schema:
+              type: object
+              xml:
+                name: payload
+        required: false
+      responses:
+        default:
+          description: Default response
+  /monitoring/health:
+    get:
+      responses:
+        default:
+          description: Default response
+  /monitoring/metrics:
+    get:
+      responses:
+        default:
+          description: Default response
+  /monitoring/queues:
+    get:
+      responses:
+        default:
+          description: Default response

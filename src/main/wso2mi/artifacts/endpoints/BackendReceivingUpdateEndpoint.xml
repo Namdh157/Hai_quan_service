@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<endpoint name="BackendReceivingCreateEndpoint" xmlns="http://ws.apache.org/ns/synapse">
-    <http method="post" uri-template="http://YOUR-BACKEND-HOST:PORT/api/v1/receiving/registrations"/>
-</endpoint>

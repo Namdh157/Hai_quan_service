@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<endpoint name="BackendResponseReceiveEndpoint" xmlns="http://ws.apache.org/ns/synapse">
+    <http method="post" uri-template="http://192.168.10.160:8290/api/v1/response/receive"/>
+</endpoint>
