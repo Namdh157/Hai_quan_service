@@ -5,6 +5,8 @@
         <inSequence>
             <!-- Đọc Content-Type từ request để forward xuống backend -->
             <property name="contentType" expression="get-property('axis2', 'ContentType')" scope="default"/>
+            <!-- Load Backend Auth Token -->
+            <property name="authToken" expression="get-property('registry', 'local://BackendAuthToken')" scope="default"/>
             <property name="requestId" expression="//requestId/text()"/>
             <property name="registrationId" expression="//registrationId/text()"/>
             <property name="procedureCode" expression="//procedureCode/text()"/>
@@ -21,7 +23,7 @@
                     </log>
                     <http.post configKey="BackendConnection">
                         <relativePath>/api/v1/routing/dispatch</relativePath>
-                        <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
+                        <headers>[["Content-Type","{$ctx:contentType}"],["Authorization","{$ctx:authToken}"]]</headers>
                         <responseVariable>dispatchResponse</responseVariable>
                     </http.post>
                 </case>
@@ -61,6 +63,8 @@
         <inSequence>
             <!-- Đọc Content-Type từ request để forward xuống backend -->
             <property name="contentType" expression="get-property('axis2', 'ContentType')" scope="default"/>
+            <!-- Load Backend Auth Token -->
+            <property name="authToken" expression="get-property('registry', 'local://BackendAuthToken')" scope="default"/>
             <property name="messageId" expression="$ctx:uri.var.messageId"/>
             <log level="custom">
                 <property name="Status" value="\[UC-27\] Received Resend Request"/>
@@ -70,7 +74,7 @@
             <!-- Step 1: Lấy trạng thái thông điệp -->
             <http.get configKey="BackendConnection">
                 <relativePath>/api/v1/routing/resend/{uri.var.messageId}/status</relativePath>
-                <headers>[["Accept","application/json"]]</headers>
+                <headers>[["Accept","application/json"],["Authorization","{$ctx:authToken}"]]</headers>
                 <responseVariable>statusResponse</responseVariable>
             </http.get>
 
@@ -84,7 +88,7 @@
                     <!-- Resend the message -->
                     <http.post configKey="BackendConnection">
                         <relativePath>/api/v1/routing/resend/{uri.var.messageId}</relativePath>
-                        <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
+                        <headers>[["Content-Type","{$ctx:contentType}"],["Authorization","{$ctx:authToken}"]]</headers>
                         <responseVariable>resendResponse</responseVariable>
                     </http.post>
                     <payloadFactory media-type="json">
@@ -137,6 +141,8 @@
         <inSequence>
             <!-- Đọc Content-Type từ request để forward xuống backend -->
             <property name="contentType" expression="get-property('axis2', 'ContentType')" scope="default"/>
+            <!-- Load Backend Auth Token -->
+            <property name="authToken" expression="get-property('registry', 'local://BackendAuthToken')" scope="default"/>
             <!-- Extract Fields -->
             <property name="procedureCode"
                       expression="//procedureCode/text()"
@@ -153,7 +159,7 @@
 
             <http.post configKey="BackendConnection">
                 <relativePath>/api/v1/routing/resend</relativePath>
-                <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
+                <headers>[["Content-Type","{$ctx:contentType}"],["Authorization","{$ctx:authToken}"]]</headers>
                 <responseVariable>resendBatchResponse</responseVariable>
             </http.post>
 

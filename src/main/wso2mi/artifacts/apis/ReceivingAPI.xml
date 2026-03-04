@@ -5,6 +5,8 @@
         <inSequence>
             <!-- Đọc Content-Type từ request để forward xuống backend -->
             <property name="contentType" expression="get-property('axis2', 'ContentType')" scope="default"/>
+            <!-- Load Backend Auth Token -->
+            <property name="authToken" expression="get-property('registry', 'local://BackendAuthToken')" scope="default"/>
             <log level="custom">
                 <property name="Status" value="[UC-22] Received New Registration Request"/>
                 <property name="requestId" expression="//requestId/text()"/>
@@ -14,7 +16,7 @@
 
             <http.post configKey="BackendConnection">
                 <relativePath>/api/v1/receiving/registrations</relativePath>
-                <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
+                <headers>[["Content-Type","{$ctx:contentType}"],["Authorization","{$ctx:authToken}"]]</headers>
                 <responseVariable>createResponse</responseVariable>
             </http.post>
 
@@ -36,6 +38,8 @@
         <inSequence>
             <!-- Đọc Content-Type từ request để forward xuống backend -->
             <property name="contentType" expression="get-property('axis2', 'ContentType')" scope="default"/>
+            <!-- Load Backend Auth Token -->
+            <property name="authToken" expression="get-property('registry', 'local://BackendAuthToken')" scope="default"/>
             <log level="custom">
                 <property name="Status" value="[UC-23] Received Registration Amend Request"/>
                 <property name="registrationId" expression="get-property('uri.var.registrationId')"/>
@@ -44,7 +48,7 @@
 
             <http.post configKey="BackendConnection">
                 <relativePath>/api/v1/internal/registrations/{uri.var.registrationId}/amend</relativePath>
-                <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
+                <headers>[["Content-Type","{$ctx:contentType}"],["Authorization","{$ctx:authToken}"]]</headers>
                 <responseVariable>amendResponse</responseVariable>
             </http.post>
 
@@ -67,6 +71,8 @@
         <inSequence>
             <!-- Đọc Content-Type từ request để forward xuống backend -->
             <property name="contentType" expression="get-property('axis2', 'ContentType')" scope="default"/>
+            <!-- Load Backend Auth Token -->
+            <property name="authToken" expression="get-property('registry', 'local://BackendAuthToken')" scope="default"/>
 
             <!-- Extract Path Param -->
             <property name="registrationId"
@@ -111,7 +117,7 @@
                 <else>
                     <http.post configKey="BackendConnection">
                         <relativePath>/api/v1/receiving/registrations/{uri.var.registrationId}/cancel</relativePath>
-                        <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
+                        <headers>[["Content-Type","{$ctx:contentType}"],["Authorization","{$ctx:authToken}"]]</headers>
                         <responseVariable>cancelResponse</responseVariable>
                     </http.post>
                 </else>

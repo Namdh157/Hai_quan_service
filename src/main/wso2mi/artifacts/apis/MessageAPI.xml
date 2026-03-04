@@ -5,6 +5,8 @@
         <inSequence>
             <!-- Đọc Content-Type từ request để forward xuống backend -->
             <property name="contentType" expression="get-property('axis2', 'ContentType')" scope="default"/>
+            <!-- Load Backend Auth Token -->
+            <property name="authToken" expression="get-property('registry', 'local://BackendAuthToken')" scope="default"/>
             <property expression="//rawMessage/requestId/text()" name="requestId" scope="default" type="STRING"/>
             <property expression="//rawMessage/procedureCode/text()" name="procedureCode" scope="default" type="STRING"/>
             <property expression="//rawMessage/registrationId/text()" name="registrationId" scope="default" type="STRING"/>
@@ -19,21 +21,21 @@
                 <case regex="PC_01">
                     <http.post configKey="BackendConnection">
                         <relativePath>/api/v1/messages/parse</relativePath>
-                        <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
+                        <headers>[["Content-Type","{$ctx:contentType}"],["Authorization","{$ctx:authToken}"]]</headers>
                         <responseVariable>parseResponse</responseVariable>
                     </http.post>
                 </case>
                 <case regex="PC_02">
                     <http.post configKey="BackendConnection">
                         <relativePath>/api/v1/messages/parse</relativePath>
-                        <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
+                        <headers>[["Content-Type","{$ctx:contentType}"],["Authorization","{$ctx:authToken}"]]</headers>
                         <responseVariable>parseResponse</responseVariable>
                     </http.post>
                 </case>
                 <default>
                     <http.post configKey="BackendConnection">
                         <relativePath>/api/v1/messages/parse</relativePath>
-                        <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
+                        <headers>[["Content-Type","{$ctx:contentType}"],["Authorization","{$ctx:authToken}"]]</headers>
                         <responseVariable>parseResponse</responseVariable>
                     </http.post>
                 </default>
@@ -63,6 +65,8 @@
         <inSequence>
             <!-- Đọc Content-Type từ request để forward xuống backend -->
             <property name="contentType" expression="get-property('axis2', 'ContentType')" scope="default"/>
+            <!-- Load Backend Auth Token -->
+            <property name="authToken" expression="get-property('registry', 'local://BackendAuthToken')" scope="default"/>
             <property expression="//messageId/text()" name="messageId" scope="default" type="STRING"/>
             <property expression="//requestId/text() | //parsedContent//requestId/text()" name="requestId" scope="default" type="STRING"/>
             <property expression="//procedureCode/text() | //parsedContent//procedureCode/text()" name="procedureCode" scope="default" type="STRING"/>
@@ -88,7 +92,7 @@
                     <!-- Archive: không retry -->
                     <http.post configKey="BackendConnection">
                         <relativePath>/api/v1/messages/store</relativePath>
-                        <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
+                        <headers>[["Content-Type","{$ctx:contentType}"],["Authorization","{$ctx:authToken}"]]</headers>
                         <responseVariable>storeResponse</responseVariable>
                     </http.post>
                 </case>
@@ -96,7 +100,7 @@
                     <!-- Standard -->
                     <http.post configKey="BackendConnection">
                         <relativePath>/api/v1/messages/store</relativePath>
-                        <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
+                        <headers>[["Content-Type","{$ctx:contentType}"],["Authorization","{$ctx:authToken}"]]</headers>
                         <responseVariable>storeResponse</responseVariable>
                     </http.post>
                 </default>
