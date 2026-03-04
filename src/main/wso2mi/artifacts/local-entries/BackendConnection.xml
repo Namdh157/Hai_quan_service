@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<localEntry key="BackendConnection" xmlns="http://ws.apache.org/ns/synapse">
+    <http.init>
+        <connectionType>HTTP</connectionType>
+        <baseUrl>http://192.168.0.133:8080</baseUrl>
+        <authType>None</authType>
+        <timeoutDuration>30000</timeoutDuration>
+        <timeoutAction>Fault</timeoutAction>
+        <retryCount>3</retryCount>
+        <retryDelay>2000</retryDelay>
+        <suspendInitialDuration>2000</suspendInitialDuration>
+        <suspendProgressionFactor>1.0</suspendProgressionFactor>
+        <suspendMaximumDuration>3000</suspendMaximumDuration>
+        <name>BackendConnection</name>
+    </http.init>
+</localEntry>

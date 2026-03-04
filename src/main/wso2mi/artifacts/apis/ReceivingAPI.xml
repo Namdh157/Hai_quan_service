@@ -1,20 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <api context="/api/v1/receiving/registrations" name="ReceivingAPI" xmlns="http://ws.apache.org/ns/synapse">
-    <!-- UC-22: Tiếp nhận đăng ký hồ sơ mới -->
+    <!-- UC-22: Tiếp nhận đăng ký hồ sơ mới -->
     <resource methods="POST" uri-template="/">
         <inSequence>
+            <!-- Đọc Content-Type từ request để forward xuống backend -->
+            <property name="contentType" expression="get-property('axis2', 'ContentType')" scope="default"/>
             <log level="custom">
                 <property name="Status" value="[UC-22] Received New Registration Request"/>
-                <!-- Extract requestId, procedureCode, enterpriseId using XPath -->
                 <property name="requestId" expression="//requestId/text()"/>
                 <property name="procedureCode" expression="//procedureCode/text()"/>
                 <property name="enterpriseId" expression="//enterpriseId/text()"/>
             </log>
-            
-            <call>
-                <endpoint key="BackendReceivingCreateEndpoint"/>
-            </call>
-            <!-- Respond auto formats based on backend Content-Type -->
+
+            <http.post configKey="BackendConnection">
+                <relativePath>/api/v1/receiving/registrations</relativePath>
+                <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
+                <responseVariable>createResponse</responseVariable>
+            </http.post>
+
             <respond/>
         </inSequence>
         <outSequence/>
@@ -24,25 +27,27 @@
                 <property name="ERROR_CODE" expression="get-property('ERROR_CODE')"/>
                 <property name="ERROR_MESSAGE" expression="get-property('ERROR_MESSAGE')"/>
             </log>
-            <!-- Forward the error to client -->
             <respond/>
         </faultSequence>
     </resource>
 
-    <!-- UC-23: Tiếp nhận sửa hồ sơ -->
+    <!-- UC-23: Tiếp nhận sửa hồ sơ -->
     <resource methods="POST" uri-template="/{registrationId}/amend">
         <inSequence>
+            <!-- Đọc Content-Type từ request để forward xuống backend -->
+            <property name="contentType" expression="get-property('axis2', 'ContentType')" scope="default"/>
             <log level="custom">
                 <property name="Status" value="[UC-23] Received Registration Amend Request"/>
-                <!-- Extract path parameter registrationId using get-property -->
                 <property name="registrationId" expression="get-property('uri.var.registrationId')"/>
-                <!-- Extract requestId from payload -->
                 <property name="requestId" expression="//requestId/text()"/>
             </log>
-            
-            <call>
-                <endpoint key="BackendReceivingUpdateEndpoint"/>
-            </call>
+
+            <http.post configKey="BackendConnection">
+                <relativePath>/api/v1/internal/registrations/{uri.var.registrationId}/amend</relativePath>
+                <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
+                <responseVariable>amendResponse</responseVariable>
+            </http.post>
+
             <respond/>
         </inSequence>
         <outSequence/>
@@ -57,10 +62,11 @@
     </resource>
 
     <!-- UC-24: Tiếp nhận hủy hồ sơ -->
-    <resource methods="POST"
-              uri-template="/{registrationId}/cancel">
+    <resource methods="POST" uri-template="/{registrationId}/cancel">
 
         <inSequence>
+            <!-- Đọc Content-Type từ request để forward xuống backend -->
+            <property name="contentType" expression="get-property('axis2', 'ContentType')" scope="default"/>
 
             <!-- Extract Path Param -->
             <property name="registrationId"
@@ -103,32 +109,11 @@
                     <respond/>
                 </then>
                 <else>
-
-                    <!-- Switch by procedureCode -->
-                    <switch source="get-property('procedureCode')">
-
-                        <case regex=".*">
-                            <call>
-                                <endpoint key="BackendReceiveCancelEndpoint"/>
-                            </call>
-                        </case>
-
-                        <default>
-                            <property name="HTTP_SC" value="400" scope="axis2"/>
-                            <payloadFactory media-type="xml">
-                                <format>
-                                    <error>
-                                        <code>400</code>
-                                        <message>Invalid procedureCode</message>
-                                    </error>
-                                </format>
-                                <args/>
-                            </payloadFactory>
-                            <respond/>
-                        </default>
-
-                    </switch>
-
+                    <http.post configKey="BackendConnection">
+                        <relativePath>/api/v1/receiving/registrations/{uri.var.registrationId}/cancel</relativePath>
+                        <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
+                        <responseVariable>cancelResponse</responseVariable>
+                    </http.post>
                 </else>
             </filter>
 
