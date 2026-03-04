@@ -7,6 +7,19 @@ servers:
 - url: http://localhost:8290/registrationapi
 - url: https://localhost:8253/registrationapi
 paths:
+  /{registrationId}:
+    get:
+      parameters:
+      - name: registrationId
+        in: path
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      responses:
+        default:
+          description: Default response
   /:
     get:
       responses:

@@ -1,9 +1,132 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <api context="/registrationapi" name="RegistrationAPI" xmlns="http://ws.apache.org/ns/synapse">
+    <resource methods="GET" uri-template="/{registrationId}">
+        <inSequence>
+        <property expression="get-property('uri.var.registrationId')" name="registrationId" scope="default" type="STRING"/>
+        <property expression="$url:procedureCode" name="procedureCode" scope="default" type="STRING"/>
+        <property expression="$trp:X-Request-Id" name="requestId" scope="default" type="STRING"/>
+            <log level="custom">
+                <property name="Status" value="[UC-73] Query Registration Detail"/>
+                <property name="registrationId" expression="get-property('registrationId')"/>
+                <property name="procedureCode" expression="get-property('procedureCode')"/>
+                <property name="requestId" expression="get-property('requestId')"/>
+            </log>
+            <switch source="get-property('procedureCode')">
+                <case regex="HQ01">
+                    <http.get configKey="BackendConnection">
+                        <relativePath>/api/v1/registrations/{$ctx:registrationId}</relativePath>
+                        <headers>[["Accept","application/json"]]</headers>
+                        <responseVariable>queryResponse</responseVariable>
+                    </http.get>
+                </case>
+                <case regex="HQ02">
+                    <http.get configKey="BackendConnection">
+                        <relativePath>/api/v1/registrations/special/{$ctx:registrationId}</relativePath>
+                        <headers>[["Accept","application/json"]]</headers>
+                        <responseVariable>queryResponse</responseVariable>
+                    </http.get>
+                </case>
+                <default>
+                    <http.get configKey="BackendConnection">
+                        <relativePath>/api/v1/registrations/{$ctx:registrationId}</relativePath>
+                        <headers>[["Accept","application/json"]]</headers>
+                        <responseVariable>queryResponse</responseVariable>
+                    </http.get>
+                </default>
+            </switch>
+            <property name="messageType" scope="axis2" type="STRING" value="application/json"/>
+            <respond/>
+        </inSequence>
+        <outSequence/>
+        <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-73] Query Failed"/>
+                <property name="registrationId" expression="get-property('registrationId')"/>
+                <property name="Details" expression="get-property('ERROR_MESSAGE')"/>
+            </log>
+            <filter source="get-property('axis2', 'HTTP_SC')" regex="404">
+                <then>
+                    <property name="HTTP_SC" scope="axis2" type="STRING" value="404"/>
+                    <payloadFactory media-type="json">
+                        <format>{"errorCode": "REG_NOT_FOUND", "message": "Hồ sơ không tồn tại", "id": "$1"}</format>
+                        <args>
+                            <arg evaluator="xml" expression="get-property('registrationId')"/>
+                        </args>
+                    </payloadFactory>
+                </then>
+                <else>
+                    <property name="HTTP_SC" scope="axis2" type="STRING" value="500"/>
+                    <payloadFactory media-type="json">
+                        <format>{"errorCode": "QUERY_ERR", "message": "Lỗi hệ thống khi tra cứu", "detail": "$1"}</format>
+                        <args>
+                            <arg evaluator="xml" expression="get-property('ERROR_MESSAGE')"/>
+                        </args>
+                    </payloadFactory>
+                </else>
+            </filter>
+            <property name="messageType" scope="axis2" type="STRING" value="application/json"/>
+            <respond/>
+        </faultSequence>
+    </resource>
+    <!-- uc 74 -->
     <resource methods="GET" uri-template="/">
         <inSequence>
+        <property expression="$url:procedureCode" name="procedureCode" scope="default" type="STRING"/>
+        <property expression="$url:enterpriseId" name="enterpriseId" scope="default" type="STRING"/>
+        <property expression="$url:status" name="status" scope="default" type="STRING"/>
+        <property expression="$url:fromDate" name="fromDate" scope="default" type="STRING"/>
+        <property expression="$url:toDate" name="toDate" scope="default" type="STRING"/>
+        <property expression="$url:page" name="page" scope="default" type="STRING"/>
+        <property expression="$url:size" name="size" scope="default" type="STRING"/>
+        <property expression="$trp:X-Request-Id" name="requestId" scope="default" type="STRING"/>
+            <log level="custom">
+                <property name="Status" value="[UC-74] Search Registrations by Criteria"/>
+                <property name="requestId" expression="get-property('requestId')"/>
+                <property name="procedureCode" expression="get-property('procedureCode')"/>
+                <property name="enterpriseId" expression="get-property('enterpriseId')"/>
+                <property name="status" expression="get-property('status')"/>
+            </log>
+            <switch source="get-property('procedureCode')">
+                <case regex="HQ01">
+                    <http.get configKey="BackendConnection">
+                        <relativePath>/api/v1/registrations</relativePath>
+                        <headers>[["Accept","application/json"]]</headers>
+                        <responseVariable>searchResponse</responseVariable>
+                    </http.get>
+                </case>
+                <case regex="HQ02">
+                    <http.get configKey="BackendConnection">
+                        <relativePath>/api/v1/registrations/special</relativePath>
+                        <headers>[["Accept","application/json"]]</headers>
+                        <responseVariable>searchResponse</responseVariable>
+                    </http.get>
+                </case>
+                <default>
+                    <http.get configKey="BackendConnection">
+                        <relativePath>/api/v1/registrations</relativePath>
+                        <headers>[["Accept","application/json"]]</headers>
+                        <responseVariable>searchResponse</responseVariable>
+                    </http.get>
+                </default>
+            </switch>
+            <property name="messageType" scope="axis2" type="STRING" value="application/json"/>
+            <respond/>
         </inSequence>
+        <outSequence/>
         <faultSequence>
+            <log level="custom">
+                <property name="Error" value="[UC-74] Search Process Failed"/>
+                <property name="Details" expression="get-property('ERROR_MESSAGE')"/>
+            </log>
+            <property name="HTTP_SC" scope="axis2" type="STRING" value="500"/>
+            <payloadFactory media-type="json">
+                <format>{"errorCode": "SEARCH_ERR", "message": "Lỗi hệ thống khi tìm kiếm", "detail": "$1"}</format>
+                <args>
+                    <arg evaluator="xml" expression="get-property('ERROR_MESSAGE')"/>
+                </args>
+            </payloadFactory>
+            <property name="messageType" scope="axis2" type="STRING" value="application/json"/>
+            <respond/>
         </faultSequence>
     </resource>
 </api>

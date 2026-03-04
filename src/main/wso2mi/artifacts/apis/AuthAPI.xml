@@ -3,6 +3,7 @@
     <!-- uc 35 -->
     <resource methods="POST" uri-template="/login">
         <inSequence>
+        <property name="contentType" expression="get-property('axis2', 'ContentType')" scope="default"/>
         <property expression="//username/text()" name="username" scope="default" type="STRING"/>
         <property expression="//clientIp/text()" name="clientIp" scope="default" type="STRING"/>
         <property expression="//procedureCode/text()" name="procedureCode" scope="default" type="STRING"/>
@@ -14,19 +15,25 @@
             </log>
             <switch source="get-property('procedureCode')">
                 <case regex="INTERNAL">
-                    <call>
-                        <endpoint key="BackendAuthLoginInternalEndpoint"/>
-                    </call>
+                    <http.post configKey="BackendConnection">
+                        <relativePath>/api/v1/auth/login/internal</relativePath>
+                        <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
+                        <responseVariable>authResponse</responseVariable>
+                    </http.post>
                 </case>
                 <case regex="EXTERNAL">
-                    <call>
-                        <endpoint key="BackendAuthLoginExternalEndpoint"/>
-                    </call>
+                    <http.post configKey="BackendConnection">
+                        <relativePath>/api/v1/auth/login/external</relativePath>
+                        <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
+                        <responseVariable>authResponse</responseVariable>
+                    </http.post>
                 </case>
                 <default>
-                    <call>
-                        <endpoint key="BackendAuthLoginEndpoint"/>
-                    </call>
+                    <http.post configKey="BackendConnection">
+                        <relativePath>/api/v1/auth/login</relativePath>
+                        <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
+                        <responseVariable>authResponse</responseVariable>
+                    </http.post>
                 </default>
             </switch>
             <property name="messageType" scope="axis2" type="STRING" value="application/json"/>
@@ -38,15 +45,18 @@
                 <property name="Error" value="[UC-35] Authentication Failed"/>
                 <property name="User" expression="get-property('username')"/>
                 <property name="ErrorCode" expression="get-property('ERROR_CODE')"/>
+                <property name="Details" expression="get-property('ERROR_MESSAGE')"/>
             </log>
-            <filter source="get-property('ERROR_CODE')" regex="423|get-property('HTTP_SC')">
+            <filter source="get-property('ERROR_CODE')" regex="423">
                 <then>
+                    <property name="HTTP_SC" scope="axis2" type="STRING" value="423"/>
                     <payloadFactory media-type="json">
                         <format>{"errorCode": "AUTH_002", "message": "Tài khoản bị khóa"}</format>
                         <args/>
                     </payloadFactory>
                 </then>
                 <else>
+                    <property name="HTTP_SC" scope="axis2" type="STRING" value="401"/>
                     <payloadFactory media-type="json">
                         <format>{"errorCode": "AUTH_001", "message": "Sai tên đăng nhập hoặc mật khẩu"}</format>
                         <args/>
@@ -63,48 +73,61 @@
         <property expression="$url:procedureCode" name="procedureCode" scope="default" type="STRING"/>
         <property expression="$url:userId" name="userId" scope="default" type="STRING"/>
         <property expression="$trp:X-Request-Id" name="requestId" scope="default" type="STRING"/>
-            <log level="custom">
-                <property name="Status" value="[UC-36] View Profile Request"/>
-                <property name="userId" expression="get-property('userId')"/>
-                <property name="procedureCode" expression="get-property('procedureCode')"/>
-            </log>
+        <log level="custom">
+            <property name="Status" value="[UC-36] View Profile Request"/>
+            <property name="userId" expression="get-property('userId')"/>
+            <property name="procedureCode" expression="get-property('procedureCode')"/>
+        </log>
 
-            <switch source="get-property('procedureCode')">
-                <case regex="FETCH_FULL">
-                    <call>
-                        <endpoint key="BackendAuthProfileFullEndpoint"/>
-                    </call>
-                </case>
-                <case regex="FETCH_BASIC">
-                    <call>
-                        <endpoint key="BackendAuthProfileBasicEndpoint"/>
-                    </call>
-                </case>
-                <default>
-                    <call>
-                        <endpoint key="BackendAuthProfileDefaultEndpoint"/>
-                    </call>
-                </default>
-            </switch>
-            <respond/>
-        </inSequence>
-        <outSequence/>
-        <faultSequence>
-            <log level="custom">
-                <property name="Error" value="[UC-36] Failed to fetch profile"/>
-                <property name="Details" expression="get-property('ERROR_MESSAGE')"/>
-            </log>
-            <payloadFactory media-type="xml">
-                <format>
-                    <error>
-                        <code>AUTH_PROFILE_ERR</code>
-                        <message>Không thể lấy thông tin tài khoản</message>
-                    </error>
-                </format>
-                <args/>
-            </payloadFactory>
-            <respond/>
-        </faultSequence>
+        <switch source="get-property('procedureCode')">
+            <case regex="FETCH_FULL">
+                <http.get configKey="BackendConnection">
+                    <relativePath>/api/v1/auth/profile/full</relativePath>
+                    <headers>[["Accept","application/json"],["X-User-ID","{$ctx:userId}"]]</headers>
+                    <responseVariable>profileResponse</responseVariable>
+                </http.get>
+            </case>
+            <case regex="FETCH_BASIC">
+                <http.get configKey="BackendConnection">
+                    <relativePath>/api/v1/auth/profile/basic</relativePath>
+                    <headers>[["Accept","application/json"],["X-User-ID","{$ctx:userId}"]]</headers>
+                    <responseVariable>profileResponse</responseVariable>
+                </http.get>
+            </case>
+            <default>
+                <http.get configKey="BackendConnection">
+                    <relativePath>/api/v1/auth/profile</relativePath>
+                    <headers>[["Accept","application/json"],["X-User-ID","{$ctx:userId}"]]</headers>
+                    <responseVariable>profileResponse</responseVariable>
+                </http.get>
+            </default>
+        </switch>
+
+        <property name="messageType" scope="axis2" type="STRING" value="application/json"/>
+        <respond/>
+    </inSequence>
+    <outSequence/>
+    <faultSequence>
+        <log level="custom">
+            <property name="Error" value="[UC-36] Failed to fetch profile"/>
+            <property name="Details" expression="get-property('ERROR_MESSAGE')"/>
+        </log>
+        <property name="HTTP_SC" scope="axis2" type="STRING" value="500"/>
+        <payloadFactory media-type="json">
+            <format>{
+                "error": {
+                    "code": "AUTH_PROFILE_ERR",
+                    "message": "Không thể lấy thông tin tài khoản",
+                    "detail": "$1"
+                }
+            }</format>
+            <args>
+                <arg evaluator="xml" expression="get-property('ERROR_MESSAGE')"/>
+            </args>
+        </payloadFactory>
+        <property name="messageType" scope="axis2" type="STRING" value="application/json"/>
+        <respond/>
+    </faultSequence>
     </resource>
     <!-- uc37-->
     <resource methods="POST" uri-template="/logout">

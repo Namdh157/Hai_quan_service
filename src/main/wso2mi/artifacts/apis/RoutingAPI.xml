@@ -1,8 +1,10 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-    <api context="/api/v1/routingapi" name="RoutingAPI" xmlns="http://ws.apache.org/ns/synapse">
-      <!-- UC26: Định tuyến thông điệp-->
-       <resource methods="POST" uri-template="/dispatch">
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/api/v1/routingapi" name="RoutingAPI" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- UC26: Định tuyến thông điệp -->
+    <resource methods="POST" uri-template="/dispatch">
         <inSequence>
+            <!-- Đọc Content-Type từ request để forward xuống backend -->
+            <property name="contentType" expression="get-property('axis2', 'ContentType')" scope="default"/>
             <property name="requestId" expression="//requestId/text()"/>
             <property name="registrationId" expression="//registrationId/text()"/>
             <property name="procedureCode" expression="//procedureCode/text()"/>
@@ -17,9 +19,11 @@
                     <log level="custom">
                         <property name="Status" value="\[UC-26\] Routing to HQ Subsystem"/>
                     </log>
-                    <call>
-                        <endpoint key="BackendRoutingDispathEndpoint"/>
-                    </call>
+                    <http.post configKey="BackendConnection">
+                        <relativePath>/api/v1/routing/dispatch</relativePath>
+                        <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
+                        <responseVariable>dispatchResponse</responseVariable>
+                    </http.post>
                 </case>
                 <!-- Thêm các case khác cho procedureCode tại đây -->
                 <default>
@@ -27,7 +31,6 @@
                         <property name="Status" value="\[UC-26\] Routing Failed - Unknown procedureCode"/>
                         <property name="procedureCode" expression="get-property('procedureCode')"/>
                     </log>
-                    <!-- Tạo response lỗi -->
                     <payloadFactory media-type="xml">
                         <format>
                             <error>
@@ -52,19 +55,26 @@
             <respond/>
         </faultSequence>
     </resource>
-    <!-- UC-27: Resend Resource -->
+
+    <!-- UC-27: Resend đơn lẻ -->
     <resource methods="POST" uri-template="/resend/{messageId}">
         <inSequence>
+            <!-- Đọc Content-Type từ request để forward xuống backend -->
+            <property name="contentType" expression="get-property('axis2', 'ContentType')" scope="default"/>
             <property name="messageId" expression="$ctx:uri.var.messageId"/>
             <log level="custom">
                 <property name="Status" value="\[UC-27\] Received Resend Request"/>
                 <property name="messageId" expression="get-property('messageId')"/>
             </log>
-            <!-- Step 1: Call backend to get message status (assuming this logic exists) -->
-            <call>
-                <endpoint key="GetMessageStatusEndpoint"/>
-            </call>
-            <!-- Step 2: Check status. Filter for 'FAILED' status -->
+
+            <!-- Step 1: Lấy trạng thái thông điệp -->
+            <http.get configKey="BackendConnection">
+                <relativePath>/api/v1/routing/resend/{uri.var.messageId}/status</relativePath>
+                <headers>[["Accept","application/json"]]</headers>
+                <responseVariable>statusResponse</responseVariable>
+            </http.get>
+
+            <!-- Step 2: Kiểm tra status = FAILED -->
             <filter source="//status/text()" regex="FAILED">
                 <then>
                     <log level="custom">
@@ -72,10 +82,11 @@
                         <property name="messageId" expression="get-property('messageId')"/>
                     </log>
                     <!-- Resend the message -->
-                    <call>
-                        <endpoint key="ResendDispatchEndpoint"/>
-                    </call>
-                    <!-- Create success response -->
+                    <http.post configKey="BackendConnection">
+                        <relativePath>/api/v1/routing/resend/{uri.var.messageId}</relativePath>
+                        <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
+                        <responseVariable>resendResponse</responseVariable>
+                    </http.post>
                     <payloadFactory media-type="json">
                         <format>
                             {
@@ -120,10 +131,12 @@
             <respond/>
         </faultSequence>
     </resource>
+
     <!-- UC-28: Gửi lại nhiều thông điệp -->
-    <resource methods="POST"
-              uri-template="/resend">
+    <resource methods="POST" uri-template="/resend">
         <inSequence>
+            <!-- Đọc Content-Type từ request để forward xuống backend -->
+            <property name="contentType" expression="get-property('axis2', 'ContentType')" scope="default"/>
             <!-- Extract Fields -->
             <property name="procedureCode"
                       expression="//procedureCode/text()"
@@ -137,27 +150,13 @@
                 <property name="procedureCode" expression="get-property('procedureCode')"/>
                 <property name="messageCount" expression="get-property('messageCount')"/>
             </log>
-            <!-- Switch by procedureCode -->
-            <switch source="get-property('procedureCode')">
-                <case regex=".*">
-                    <call>
-                        <endpoint key="BackendRoutingResendBatchEndpoint"/>
-                    </call>
-                </case>
-                <default>
-                    <property name="HTTP_SC" value="400" scope="axis2"/>
-                    <payloadFactory media-type="xml">
-                        <format>
-                            <error>
-                                <code>400</code>
-                                <message>Invalid procedureCode</message>
-                            </error>
-                        </format>
-                        <args/>
-                    </payloadFactory>
-                    <respond/>
-                </default>
-            </switch>
+
+            <http.post configKey="BackendConnection">
+                <relativePath>/api/v1/routing/resend</relativePath>
+                <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
+                <responseVariable>resendBatchResponse</responseVariable>
+            </http.post>
+
             <respond/>
         </inSequence>
         <outSequence/>
