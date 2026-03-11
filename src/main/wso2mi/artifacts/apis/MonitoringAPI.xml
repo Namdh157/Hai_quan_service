@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/api/v1/monitoring"
+     name="MonitoringAPI"
+     xmlns="http://ws.apache.org/ns/synapse">
+
+    <!-- ===================================================== -->
+    <!-- UC-87: System Health Check                            -->
+    <!-- ===================================================== -->
+    <resource methods="GET" uri-template="/health">
+        <inSequence>
+
+            <!-- Extract Authorization -->
+            <property name="authorization"
+                      expression="get-property('transport','Authorization')"/>
+
+            <!-- Extract Caller IP -->
+            <property name="caller"
+                      expression="get-property('axis2','REMOTE_ADDR')"/>
+
+            <!-- Timestamp -->
+            <property name="requestTimestamp"
+                      expression="get-property('SYSTEM_TIME')"/>
+
+            <!-- Logging -->
+            <log level="custom">
+                <property name="UseCase" value="[UC-87] System Health Check"/>
+                <property name="requestTime" expression="get-property('requestTimestamp')"/>
+                <property name="caller" expression="get-property('caller')"/>
+            </log>
+
+            <!-- Authorization Validation -->
+            <filter xpath="string-length(get-property('authorization')) = 0">
+                <then>
+                    <property name="HTTP_SC" value="401" scope="axis2"/>
+                    <payloadFactory media-type="json">
+                        <format>
+                        {
+                          "error": {
+                            "code": "401",
+                            "message": "Unauthorized"
+                          }
+                        }
+                        </format>
+                        <args/>
+                    </payloadFactory>
+                    <respond/>
+                </then>
+                <else>
+                    <http.get configKey="BackendConnection">
+                        <relativePath>/api/v1/monitoring/health</relativePath>
+                    </http.get>
+                </else>
+            </filter>
+
+            <respond/>
+        </inSequence>
+
+        <faultSequence>
+            <property name="HTTP_SC" value="500" scope="axis2"/>
+            <log level="custom">
+                <property name="Error" value="[UC-87] Processing Error"/>
+                <property name="ERROR_CODE" expression="get-property('ERROR_CODE')"/>
+                <property name="ERROR_MESSAGE" expression="get-property('ERROR_MESSAGE')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+
+    <!-- ===================================================== -->
+    <!-- UC-88: System Metrics Query                           -->
+    <!-- ===================================================== -->
+    <resource methods="GET" uri-template="/metrics">
+        <inSequence>
+
+            <!-- Extract Query Params -->
+            <property name="fromTime"
+                      expression="get-property('uri.var.fromTime')"/>
+            <property name="toTime"
+                      expression="get-property('uri.var.toTime')"/>
+
+            <!-- Timestamp -->
+            <property name="requestTimestamp"
+                      expression="get-property('SYSTEM_TIME')"/>
+
+            <!-- Logging -->
+            <log level="custom">
+                <property name="UseCase" value="[UC-88] System Metrics Query"/>
+                <property name="requestTime" expression="get-property('requestTimestamp')"/>
+                <property name="fromTime" expression="get-property('fromTime')"/>
+                <property name="toTime" expression="get-property('toTime')"/>
+            </log>
+
+            <!-- Rewrite REST_URL_POSTFIX (XPath 1.0 compatible) -->
+            <filter xpath="string-length(get-property('fromTime')) > 0">
+                <then>
+                    <filter xpath="string-length(get-property('toTime')) > 0">
+                        <then>
+                            <property name="REST_URL_POSTFIX"
+                                      expression="concat('/api/v1/monitoring/metrics?fromTime=',
+                                              get-property('fromTime'),
+                                              '&amp;toTime=',
+                                              get-property('toTime'))"
+                                      scope="axis2"/>
+                        </then>
+                        <else>
+                            <property name="REST_URL_POSTFIX"
+                                      expression="concat('/api/v1/monitoring/metrics?fromTime=',
+                                              get-property('fromTime'))"
+                                      scope="axis2"/>
+                        </else>
+                    </filter>
+                </then>
+                <else>
+                    <filter xpath="string-length(get-property('toTime')) > 0">
+                        <then>
+                            <property name="REST_URL_POSTFIX"
+                                      expression="concat('/api/v1/monitoring/metrics?toTime=',
+                                              get-property('toTime'))"
+                                      scope="axis2"/>
+                        </then>
+                        <else>
+                            <property name="REST_URL_POSTFIX"
+                                      value="/api/v1/monitoring/metrics"
+                                      scope="axis2"/>
+                        </else>
+                    </filter>
+                </else>
+            </filter>
+
+            <http.get configKey="BackendConnection"/>
+
+            <respond/>
+        </inSequence>
+
+        <faultSequence>
+            <property name="HTTP_SC" value="500" scope="axis2"/>
+            <log level="custom">
+                <property name="Error" value="[UC-88] Processing Error"/>
+                <property name="ERROR_CODE" expression="get-property('ERROR_CODE')"/>
+                <property name="ERROR_MESSAGE" expression="get-property('ERROR_MESSAGE')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+
+    <!-- ===================================================== -->
+    <!-- UC-89: Queue Monitoring                               -->
+    <!-- ===================================================== -->
+    <resource methods="GET" uri-template="/queues">
+        <inSequence>
+
+            <!-- Timestamp -->
+            <property name="requestTimestamp"
+                      expression="get-property('SYSTEM_TIME')"/>
+
+            <!-- Caller -->
+            <property name="caller"
+                      expression="get-property('axis2','REMOTE_ADDR')"/>
+
+            <!-- Logging -->
+            <log level="custom">
+                <property name="UseCase" value="[UC-89] Queue Monitoring"/>
+                <property name="requestTime" expression="get-property('requestTimestamp')"/>
+                <property name="caller" expression="get-property('caller')"/>
+            </log>
+
+            <http.get configKey="BackendConnection">
+                <relativePath>/api/v1/monitoring/queues</relativePath>
+            </http.get>
+
+            <respond/>
+        </inSequence>
+
+        <faultSequence>
+            <property name="HTTP_SC" value="500" scope="axis2"/>
+            <log level="custom">
+                <property name="Error" value="[UC-89] Processing Error"/>
+                <property name="ERROR_CODE" expression="get-property('ERROR_CODE')"/>
+                <property name="ERROR_MESSAGE" expression="get-property('ERROR_MESSAGE')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+</api>

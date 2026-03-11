@@ -1,0 +1,24 @@
+openapi: 3.0.1
+info:
+  title: MonitoringAPI
+  description: API Definition of MonitoringAPI
+  version: 1.0.0
+servers:
+- url: http://localhost:8290/api/v1/monitoring
+- url: https://localhost:8253/api/v1/monitoring
+paths:
+  /health:
+    get:
+      responses:
+        default:
+          description: Default response
+  /metrics:
+    get:
+      responses:
+        default:
+          description: Default response
+  /queues:
+    get:
+      responses:
+        default:
+          description: Default response
