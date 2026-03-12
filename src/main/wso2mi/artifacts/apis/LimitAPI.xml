@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/api/v1/limits"
+     name="LimitAPI"
+     xmlns="http://ws.apache.org/ns/synapse">
+
+    <!-- ================= UC-81: Thiết lập giới hạn hệ thống ================= -->
+    <resource methods="POST" uri-template="/">
+        <inSequence>
+            <!-- 1. Extract Properties -->
+            <property name="limitType" expression="//limitType/text()" scope="default"/>
+            <property name="target" expression="//target/text()" scope="default"/>
+            <property name="maxValue" expression="//maxValue/text()" scope="default"/>
+            <property name="timeWindow" expression="//timeWindow/text()" scope="default"/>
+            <property name="actionOnExceed" expression="//actionOnExceed/text()" scope="default"/>
+            <property name="authToken" expression="get-property('BackendAuthToken')" scope="default"/>
+            <property name="backendPath" value="/api/v1/limits" scope="default"/>
+
+            <!-- 2. Validate Compulsory Fields -->
+            <filter xpath="string-length(get-property('limitType')) = 0 or string-length(get-property('target')) = 0 or string-length(get-property('maxValue')) = 0 or string-length(get-property('timeWindow')) = 0 or string-length(get-property('actionOnExceed')) = 0">
+                <then>
+                    <property name="HTTP_SC" value="400" scope="axis2"/>
+                    <payloadFactory media-type="json">
+                        <format>
+                            {
+                                "error": {
+                                    "code": "400",
+                                    "message": "Missing compulsory fields (limitType, target, maxValue, timeWindow, actionOnExceed)"
+                                }
+                            }
+                        </format>
+                        <args/>
+                    </payloadFactory>
+                    <respond/>
+                </then>
+                <else>
+                    <!-- 3. Validation Passed -> Log Details -->
+                    <log level="custom">
+                        <property name="UseCase" value="UC81-CreateSystemLimit"/>
+                        <property name="limitType" expression="get-property('limitType')"/>
+                        <property name="target" expression="get-property('target')"/>
+                        <property name="maxValue" expression="get-property('maxValue')"/>
+                        <property name="backendPath" expression="get-property('backendPath')"/>
+                    </log>
+
+                    <!-- 4. Backend Call -->
+                    <header name="Authorization" expression="get-property('authToken')" scope="transport"/>
+                    <http.post configKey="BackendConnection">
+                        <relativePath>{$ctx:backendPath}</relativePath>
+                    </http.post>
+                    <respond/>
+                </else>
+            </filter>
+        </inSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-81] Fault Occurred"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ================= UC-82: Tra cứu và cập nhật giới hạn hệ thống (Search) ================= -->
+    <resource methods="GET" uri-template="/">
+        <inSequence>
+            <!-- 1. Extract Properties -->
+            <property name="limitType" expression="$url:limitType" scope="default"/>
+            <property name="target" expression="$url:target" scope="default"/>
+            <property name="authToken" expression="get-property('BackendAuthToken')" scope="default"/>
+
+            <!-- 2. Logging -->
+            <log level="custom">
+                <property name="UseCase" value="UC82-SearchLimits"/>
+                <property name="limitType" expression="get-property('limitType')"/>
+                <property name="target" expression="get-property('target')"/>
+            </log>
+
+            <!-- 3. Backend Call -->
+            <header name="Authorization" expression="get-property('authToken')" scope="transport"/>
+            <http.get configKey="BackendConnection">
+                <relativePath>/api/v1/limits</relativePath>
+            </http.get>
+            <respond/>
+        </inSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-82] Fault Occurred During Search"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ================= UC-82: Tra cứu và cập nhật giới hạn hệ thống (Update) ================= -->
+    <resource methods="PUT" uri-template="/{limitId}">
+        <inSequence>
+            <!-- 1. Extract Properties -->
+            <property name="limitId" expression="get-property('uri.var.limitId')" scope="default"/>
+            <property name="maxValue" expression="//maxValue/text()" scope="default"/>
+            <property name="actionOnExceed" expression="//actionOnExceed/text()" scope="default"/>
+            <property name="authToken" expression="get-property('BackendAuthToken')" scope="default"/>
+            <property name="backendPath" expression="fn:concat('/api/v1/limits/', get-property('limitId'))" scope="default"/>
+
+            <!-- 2. Validate Compulsory Fields -->
+            <filter xpath="string-length(get-property('limitId')) = 0 or (string-length(get-property('maxValue')) = 0 and string-length(get-property('actionOnExceed')) = 0)">
+                <then>
+                    <property name="HTTP_SC" value="400" scope="axis2"/>
+                    <payloadFactory media-type="json">
+                        <format>
+                            {
+                                "error": {
+                                    "code": "400",
+                                    "message": "Missing compulsory fields (limitId) or update fields (maxValue, actionOnExceed)"
+                                }
+                            }
+                        </format>
+                        <args/>
+                    </payloadFactory>
+                    <respond/>
+                </then>
+                <else>
+                    <!-- 3. Validation Passed -> Log Details -->
+                    <log level="custom">
+                        <property name="UseCase" value="UC82-UpdateLimit"/>
+                        <property name="limitId" expression="get-property('limitId')"/>
+                        <property name="maxValue" expression="get-property('maxValue')"/>
+                        <property name="backendPath" expression="get-property('backendPath')"/>
+                    </log>
+
+                    <!-- 4. Backend Call -->
+                    <header name="Authorization" expression="get-property('authToken')" scope="transport"/>
+                    <http.put configKey="BackendConnection">
+                        <relativePath>{$ctx:backendPath}</relativePath>
+                    </http.put>
+                    <respond/>
+                </else>
+            </filter>
+        </inSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-82] Fault Occurred During Update"/>
+                <property name="limitId" expression="get-property('limitId')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+</api>

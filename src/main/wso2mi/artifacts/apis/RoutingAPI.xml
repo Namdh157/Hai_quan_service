@@ -1,53 +1,53 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <api context="/api/v1/routingapi" name="RoutingAPI" xmlns="http://ws.apache.org/ns/synapse">
-    <!-- UC26: Định tuyến thông điệp -->
+    <!-- ================= UC-26 ================= -->
     <resource methods="POST" uri-template="/dispatch">
         <inSequence>
-            <!-- Đọc Content-Type từ request để forward xuống backend -->
+            <!-- 1. Extract Properties -->
+            <property name="requestId" expression="//requestId/text()" scope="default"/>
+            <property name="registrationId" expression="//registrationId/text()" scope="default"/>
+            <property name="procedureCode" expression="//procedureCode/text()" scope="default"/>
+            <!-- Forward content type transparently (optional but kept from original scope) -->
             <property name="contentType" expression="get-property('axis2', 'ContentType')" scope="default"/>
-            <!-- Load Backend Auth Token -->
-            <property name="authToken" expression="get-property('registry', 'local://BackendAuthToken')" scope="default"/>
-            <property name="requestId" expression="//requestId/text()"/>
-            <property name="registrationId" expression="//registrationId/text()"/>
-            <property name="procedureCode" expression="//procedureCode/text()"/>
-            <log level="custom">
-                <property name="Status" value="\[UC-26\] Received Routing Request"/>
-                <property name="requestId" expression="get-property('requestId')"/>
-                <property name="registrationId" expression="get-property('registrationId')"/>
-                <property name="procedureCode" expression="get-property('procedureCode')"/>
-            </log>
-            <switch source="get-property('procedureCode')">
-                <case regex="HQ01">
-                    <log level="custom">
-                        <property name="Status" value="\[UC-26\] Routing to HQ Subsystem"/>
-                    </log>
-                    <http.post configKey="BackendConnection">
-                        <relativePath>/api/v1/routing/dispatch</relativePath>
-                        <headers>[["Content-Type","{$ctx:contentType}"],["Authorization","{$ctx:authToken}"]]</headers>
-                        <responseVariable>dispatchResponse</responseVariable>
-                    </http.post>
-                </case>
-                <!-- Thêm các case khác cho procedureCode tại đây -->
-                <default>
-                    <log level="custom">
-                        <property name="Status" value="\[UC-26\] Routing Failed - Unknown procedureCode"/>
-                        <property name="procedureCode" expression="get-property('procedureCode')"/>
-                    </log>
+            <property name="authToken" expression="get-property('BackendAuthToken')" scope="default"/>
+            <property name="backendPath" value="/api/v1/routing/dispatch" scope="default"/>
+
+            <!-- 2. Validate Compulsory Fields -->
+            <filter xpath="string-length(get-property('requestId')) = 0 or string-length(get-property('registrationId')) = 0 or string-length(get-property('procedureCode')) = 0">
+                <then>
+                    <!-- Missing required arguments -> Return 400 -->
+                    <property name="HTTP_SC" value="400" scope="axis2"/>
                     <payloadFactory media-type="xml">
                         <format>
                             <error>
-                                <message>Routing failed: Unknown procedureCode</message>
-                                <procedureCode>$1</procedureCode>
+                                <code>400</code>
+                                <message>Missing compulsory fields (requestId, registrationId or procedureCode)</message>
                             </error>
                         </format>
-                        <args>
-                            <arg evaluator="xml" expression="get-property('procedureCode')"/>
-                        </args>
+                        <args/>
                     </payloadFactory>
-                    <property name="HTTP_SC" value="400" scope="axis2"/>
-                </default>
-            </switch>
-            <respond/>
+                    <respond/>
+                </then>
+                <else>
+                    <!-- 3. Validation Passed -> Log Details -->
+                    <log level="custom">
+                        <property name="UseCase" value="UC26-RoutingDispatch"/>
+                        <property name="requestId" expression="get-property('requestId')"/>
+                        <property name="registrationId" expression="get-property('registrationId')"/>
+                        <property name="procedureCode" expression="get-property('procedureCode')"/>
+                        <property name="backendPath" expression="get-property('backendPath')"/>
+                    </log>
+
+                    <!-- 4. Backend Call - Forward down to BE to handle the actual routing -->
+                    <header name="Authorization" expression="get-property('authToken')" scope="transport"/>
+                    <header name="Content-Type" expression="get-property('contentType')" scope="transport"/>
+                    <http.post configKey="BackendConnection">
+                        <relativePath>{$ctx:backendPath}</relativePath>
+                    </http.post>
+                    <respond/>
+                </else>
+            </filter>
+
         </inSequence>
         <outSequence/>
         <faultSequence>
@@ -58,119 +58,106 @@
         </faultSequence>
     </resource>
 
-    <!-- UC-27: Resend đơn lẻ -->
+    <!-- ================= UC-27 ================= -->
     <resource methods="POST" uri-template="/resend/{messageId}">
         <inSequence>
-            <!-- Đọc Content-Type từ request để forward xuống backend -->
-            <property name="contentType" expression="get-property('axis2', 'ContentType')" scope="default"/>
-            <!-- Load Backend Auth Token -->
-            <property name="authToken" expression="get-property('registry', 'local://BackendAuthToken')" scope="default"/>
-            <property name="messageId" expression="$ctx:uri.var.messageId"/>
-            <log level="custom">
-                <property name="Status" value="\[UC-27\] Received Resend Request"/>
-                <property name="messageId" expression="get-property('messageId')"/>
-            </log>
+            <!-- 1. Extract Properties -->
+            <property name="messageId" expression="get-property('uri.var.messageId')" scope="default"/>
+            <property name="authToken" expression="get-property('BackendAuthToken')" scope="default"/>
+            <property name="backendPath" expression="fn:concat('/api/v1/routing/resend/', get-property('messageId'))" scope="default"/>
 
-            <!-- Step 1: Lấy trạng thái thông điệp -->
-            <http.get configKey="BackendConnection">
-                <relativePath>/api/v1/routing/resend/{uri.var.messageId}/status</relativePath>
-                <headers>[["Accept","application/json"],["Authorization","{$ctx:authToken}"]]</headers>
-                <responseVariable>statusResponse</responseVariable>
-            </http.get>
-
-            <!-- Step 2: Kiểm tra status = FAILED -->
-            <filter source="//status/text()" regex="FAILED">
+            <!-- 2. Validate Compulsory Fields -->
+            <filter xpath="string-length(get-property('messageId')) = 0">
                 <then>
-                    <log level="custom">
-                        <property name="Status" value="\[UC-27\] Status is FAILED. Proceeding to resend."/>
-                        <property name="messageId" expression="get-property('messageId')"/>
-                    </log>
-                    <!-- Resend the message -->
-                    <http.post configKey="BackendConnection">
-                        <relativePath>/api/v1/routing/resend/{uri.var.messageId}</relativePath>
-                        <headers>[["Content-Type","{$ctx:contentType}"],["Authorization","{$ctx:authToken}"]]</headers>
-                        <responseVariable>resendResponse</responseVariable>
-                    </http.post>
-                    <payloadFactory media-type="json">
+                    <!-- Missing required arguments -> Return 400 -->
+                    <property name="HTTP_SC" value="400" scope="axis2"/>
+                    <payloadFactory media-type="xml">
                         <format>
-                            {
-                                "messageId": "$1",
-                                "status": "RESENT"
-                            }
+                            <error>
+                                <code>400</code>
+                                <message>Missing compulsory field (messageId)</message>
+                            </error>
                         </format>
-                        <args>
-                            <arg evaluator="xml" expression="get-property('messageId')"/>
-                        </args>
+                        <args/>
                     </payloadFactory>
+                    <respond/>
                 </then>
                 <else>
+                    <!-- 3. Validation Passed -> Log Details -->
                     <log level="custom">
-                        <property name="Status" value="\[UC-27\] Resend Rejected. Message not in FAILED state."/>
+                        <property name="UseCase" value="UC27-RoutingResend"/>
                         <property name="messageId" expression="get-property('messageId')"/>
+                        <property name="backendPath" expression="get-property('backendPath')"/>
                     </log>
-                    <payloadFactory media-type="json">
-                        <format>
-                            {
-                                "error": "Message cannot be resent",
-                                "messageId": "$1",
-                                "reason": "Message is not in a FAILED state."
-                            }
-                        </format>
-                        <args>
-                            <arg evaluator="xml" expression="get-property('messageId')"/>
-                        </args>
-                    </payloadFactory>
-                    <property name="HTTP_SC" value="409" scope="axis2"/> <!-- 409 Conflict -->
+
+                    <!-- 4. Backend Call -->
+                    <header name="Authorization" expression="get-property('authToken')" scope="transport"/>
+                    <http.post configKey="BackendConnection">
+                        <relativePath>{$ctx:backendPath}</relativePath>
+                    </http.post>
+                    <respond/>
                 </else>
             </filter>
-            <property name="messageType" value="application/json" scope="axis2"/>
-            <respond/>
+
         </inSequence>
         <outSequence/>
         <faultSequence>
-            <log level="custom">
-                <property name="Status" value="\[UC-27\] Fault Occurred During Resend"/>
-                <property name="messageId" expression="get-property('messageId')"/>
+            <log level="full">
+                <property name="Status" value="\[UC-27\] Fault Occurred"/>
             </log>
             <respond/>
         </faultSequence>
     </resource>
 
-    <!-- UC-28: Gửi lại nhiều thông điệp -->
+    <!-- ================= UC-28 ================= -->
     <resource methods="POST" uri-template="/resend">
         <inSequence>
-            <!-- Đọc Content-Type từ request để forward xuống backend -->
-            <property name="contentType" expression="get-property('axis2', 'ContentType')" scope="default"/>
-            <!-- Load Backend Auth Token -->
-            <property name="authToken" expression="get-property('registry', 'local://BackendAuthToken')" scope="default"/>
-            <!-- Extract Fields -->
-            <property name="procedureCode"
-                      expression="//procedureCode/text()"
-                      scope="default"/>
-            <property name="messageCount"
-                      expression="count(//messageIds/item)"
-                      scope="default"/>
-            <!-- Log Request -->
-            <log level="custom">
-                <property name="UseCase" value="[UC-28] Resend Batch Messages"/>
-                <property name="procedureCode" expression="get-property('procedureCode')"/>
-                <property name="messageCount" expression="get-property('messageCount')"/>
-            </log>
+            <!-- 1. Extract Properties -->
+            <property name="authToken" expression="get-property('BackendAuthToken')" scope="default"/>
+            <property name="backendPath" value="/api/v1/routing/resend" scope="default"/>
+            <property name="messageCount" expression="count(//messageId)" scope="default"/>
 
-            <http.post configKey="BackendConnection">
-                <relativePath>/api/v1/routing/resend</relativePath>
-                <headers>[["Content-Type","{$ctx:contentType}"],["Authorization","{$ctx:authToken}"]]</headers>
-                <responseVariable>resendBatchResponse</responseVariable>
-            </http.post>
+            <!-- 2. Validate Compulsory Fields -->
+            <filter xpath="count(//messageId) = 0">
+                <then>
+                    <!-- Missing required arguments -> Return 400 -->
+                    <property name="HTTP_SC" value="400" scope="axis2"/>
+                    <payloadFactory media-type="xml">
+                        <format>
+                            <error>
+                                <code>400</code>
+                                <message>Missing compulsory fields (at least one messageId required in the batch)</message>
+                            </error>
+                        </format>
+                        <args/>
+                    </payloadFactory>
+                    <respond/>
+                </then>
+                <else>
+                    <!-- 3. Validation Passed -> Log Details -->
+                    <log level="custom">
+                        <property name="UseCase" value="UC28-RoutingResendBatch"/>
+                        <property name="messageCount" expression="get-property('messageCount')"/>
+                        <property name="backendPath" expression="get-property('backendPath')"/>
+                    </log>
 
-            <respond/>
+                    <!-- 4. Backend Call -->
+                    <header name="Authorization" expression="get-property('authToken')" scope="transport"/>
+                    <http.post configKey="BackendConnection">
+                        <relativePath>{$ctx:backendPath}</relativePath>
+                    </http.post>
+                    <respond/>
+                </else>
+            </filter>
+
         </inSequence>
         <outSequence/>
         <faultSequence>
-            <log level="custom">
-                <property name="Error" value="[UC-28] Failed"/>
+            <log level="full">
+                <property name="Status" value="\[UC-28\] Fault Occurred"/>
             </log>
             <respond/>
         </faultSequence>
     </resource>
+
 </api>

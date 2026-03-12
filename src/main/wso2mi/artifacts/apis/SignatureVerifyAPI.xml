@@ -1,49 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <api context="/api/v1/signature" name="SignatureVerifyAPI" xmlns="http://ws.apache.org/ns/synapse">
-    <!-- UC-25: Xác thực chữ ký số -->
+
+    <!-- ================= UC-25 ================= -->
     <resource methods="POST" uri-template="/verify">
+
         <inSequence>
-            <!-- Đọc Content-Type từ request để forward xuống backend -->
-            <property name="contentType" expression="get-property('axis2', 'ContentType')" scope="default"/>
-            <!-- Load Backend Auth Token -->
-            <property name="authToken" expression="get-property('registry', 'local://BackendAuthToken')" scope="default"/>
-            <!-- Extract Request Fields -->
-            <property name="requestId"
-                      expression="//requestId/text()"
-                      scope="default"/>
-            <property name="procedureCode"
-                      expression="//procedureCode/text()"
-                      scope="default"/>
-            <property name="signedData"
-                      expression="//signedData/text()"
-                      scope="default"/>
-            <property name="signatureValue"
-                      expression="//signature/text()"
-                      scope="default"/>
-            <property name="signTime"
-                      expression="//signTime/text()"
-                      scope="default"/>
 
-            <!-- Log Request -->
-            <log level="custom">
-                <property name="UseCase" value="[UC-25] Signature Verification"/>
-                <property name="requestId" expression="get-property('requestId')"/>
-                <property name="procedureCode" expression="get-property('procedureCode')"/>
-                <property name="signTime" expression="get-property('signTime')"/>
-            </log>
+            <!-- 1. Extract Properties -->
+            <property name="requestId" expression="//requestId/text()" scope="default"/>
+            <property name="signedData" expression="//signedData/text()" scope="default"/>
+            <property name="signature" expression="//signature/text()" scope="default"/>
+            <property name="signTime" expression="//signTime/text()" scope="default"/>
+            <property name="authToken" expression="get-property('BackendAuthToken')" scope="default"/>
+            <property name="backendPath" value="/api/v1/signature/verify" scope="default"/>
 
-            <!-- Validate Mandatory Fields -->
-            <filter xpath="string-length(get-property('requestId')) = 0
-                           or string-length(get-property('signedData')) = 0
-                           or string-length(get-property('signatureValue')) = 0
-                           or string-length(get-property('signTime')) = 0">
+            <!-- 2. Validate Compulsory Fields -->
+            <filter xpath="string-length(get-property('requestId')) = 0 or string-length(get-property('signedData')) = 0 or string-length(get-property('signature')) = 0 or string-length(get-property('signTime')) = 0 or count(//certChain/cert) = 0">
                 <then>
                     <property name="HTTP_SC" value="400" scope="axis2"/>
                     <payloadFactory media-type="xml">
                         <format>
                             <error>
                                 <code>SIG_001</code>
-                                <message>Invalid signature format</message>
+                                <message>Sai định dạng chữ ký - Missing mandatory fields</message>
                             </error>
                         </format>
                         <args/>
@@ -51,35 +30,24 @@
                     <respond/>
                 </then>
                 <else>
+                    <!-- 3. Validation Passed -> Log Details -->
+                    <log level="custom">
+                        <property name="UseCase" value="UC25-SignatureVerify"/>
+                        <property name="requestId" expression="get-property('requestId')"/>
+                        <property name="backendPath" expression="get-property('backendPath')"/>
+                    </log>
+
+                    <!-- 4. Backend Call -->
+                    <header name="Authorization" expression="get-property('authToken')" scope="transport"/>
                     <http.post configKey="BackendConnection">
-                        <relativePath>/api/v1/signature/verify</relativePath>
-                        <headers>[["Content-Type","{$ctx:contentType}"],["Authorization","{$ctx:authToken}"]]</headers>
-                        <responseVariable>verifyResponse</responseVariable>
+                        <relativePath>{$ctx:backendPath}</relativePath>
                     </http.post>
+                    <respond/>
                 </else>
             </filter>
 
-            <!-- Log Verification Result -->
-            <log level="custom">
-                <property name="UseCase" value="[UC-25] Verification Completed"/>
-                <property name="requestId" expression="get-property('requestId')"/>
-                <property name="certificateSerial" expression="//signer/serialNumber/text()"/>
-                <property name="verificationResult" expression="//valid/text()"/>
-            </log>
-
-            <respond/>
-
         </inSequence>
 
-        <outSequence/>
-
-        <faultSequence>
-            <log level="custom">
-                <property name="Error" value="[UC-25] Failed"/>
-                <property name="requestId" expression="get-property('requestId')"/>
-            </log>
-            <respond/>
-        </faultSequence>
-
     </resource>
+
 </api>

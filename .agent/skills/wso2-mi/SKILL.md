@@ -39,6 +39,7 @@ Before implementing a flow:
 - [ ] **Error Handling:** Is there a proper fault sequence for this flow?
 - [ ] **Context path:** Unique and following naming conventions?
 - [ ] **Reuse:** Can any logic be extracted into a reusable Sequence or Local Entry?
+- [ ] **Code Convention:** For REST APIs and Use Cases (UC), does it strictly follow the **"Standard Resource Template (UC Pattern)"** defined in `apis.md`? (Explicit property extraction, validation filter, logging, and backend mapping).
 
 ---
 

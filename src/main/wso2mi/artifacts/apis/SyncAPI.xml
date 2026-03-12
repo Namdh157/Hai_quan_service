@@ -1,243 +1,120 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<api context="/api/v1/sync" name="SyncAPI" xmlns="http://ws.apache.org/ns/synapse">
-  <!-- ================= UC-83: Đồng bộ danh mục dùng chung ================= -->
-  <resource methods="POST" uri-template="/">
-    <inSequence>
-      <!-- Extract Header -->
-      <property name="contentType" expression="get-property('axis2','ContentType')" scope="default"/>
-      <!-- Extract JSON Fields -->
-      <property name="dataType" expression="json-eval($.dataType)" scope="default"/>
-      <property name="sourceSystem" expression="json-eval($.sourceSystem)" scope="default"/>
-      <property name="syncMode" expression="json-eval($.syncMode)" scope="default"/>
-      <property name="requestTime" expression="json-eval($.requestTime)" scope="default"/>
-      <!-- Log Observability -->
-      <log level="custom">
-        <property name="UseCase" value="[UC-83] Sync Master Data"/>
-        <property name="dataType" expression="get-property('dataType')"/>
-        <property name="sourceSystem" expression="get-property('sourceSystem')"/>
-        <property name="syncMode" expression="get-property('syncMode')"/>
-        <property name="requestTime" expression="get-property('requestTime')"/>
-      </log>
-      <!-- Validate Mandatory Fields -->
-      <filter xpath="string-length(get-property('dataType')) = 0 or
-                           string-length(get-property('sourceSystem')) = 0 or
-                           string-length(get-property('syncMode')) = 0 or
-                           string-length(get-property('requestTime')) = 0">
-        <then>
-          <property name="HTTP_SC" value="400" scope="axis2"/>
-          <payloadFactory media-type="json">
-            <format>
-              {
-              "error": {
-              "code": "400",
-              "message": "Missing mandatory fields"
-              }
-              }
-            </format>
-            <args/>
-          </payloadFactory>
-          <respond/>
-        </then>
-        <else>
-          <!-- Validate syncMode FULL / DELTA -->
-          <filter xpath="not(get-property('syncMode') = 'FULL' or get-property('syncMode') = 'DELTA')">
-            <then>
-              <property name="HTTP_SC" value="400" scope="axis2"/>
-              <payloadFactory media-type="json">
-                <format>
-                  {
-                  "error": {
-                  "code": "400",
-                  "message": "syncMode must be FULL or DELTA"
-                  }
-                  }
-                </format>
-                <args/>
-              </payloadFactory>
-              <respond/>
-            </then>
-            <else>
-              <!-- Call Backend via BackendConnection -->
-              <http.post configKey="BackendConnection">
+<api context="/api/v1/sync"
+     name="SyncAPI"
+     xmlns="http://ws.apache.org/ns/synapse">
+
+    <!-- ================================================= -->
+    <!-- UC-83: Đồng bộ danh mục dùng chung                -->
+    <!-- ================================================= -->
+    <resource methods="POST" uri-template="/master-data">
+        <inSequence>
+            <property name="contentType" expression="get-property('axis2', 'ContentType')" scope="default"/>
+            <property name="authToken" expression="get-property('BackendAuthToken')" scope="default"/>
+
+            <log level="custom">
+                <property name="UseCase" value="UC83-SyncMasterData"/>
+                <property name="Action" value="Requesting master data sync"/>
+            </log>
+
+            <header name="Authorization" expression="get-property('authToken')" scope="transport"/>
+            <header name="Content-Type" expression="get-property('contentType')" scope="transport"/>
+            <http.post configKey="BackendConnection">
                 <relativePath>/api/v1/sync/master-data</relativePath>
-                <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
-              </http.post>
-            </else>
-          </filter>
-        </else>
-      </filter>
-      <respond/>
-    </inSequence>
-    <outSequence/>
-    <faultSequence>
-      <log level="custom">
-        <property name="Error" value="[UC-83] Error Processing"/>
-        <property name="ERROR_CODE" expression="get-property('ERROR_CODE')"/>
-        <property name="ERROR_MESSAGE" expression="get-property('ERROR_MESSAGE')"/>
-      </log>
-      <respond/>
-    </faultSequence>
-  </resource>
-  <!-- ================= UC-84: Đồng bộ hồ sơ với hệ thống bên ngoài ================= -->
-  <resource methods="POST" uri-template="/registrations">
-    <inSequence>
-      <!-- Extract Header -->
-      <property name="contentType" expression="get-property('axis2','ContentType')" scope="default"/>
-      <!-- Extract JSON Fields -->
-      <property name="registrationId" expression="json-eval($.registrationId)" scope="default"/>
-      <property name="targetSystem" expression="json-eval($.targetSystem)" scope="default"/>
-      <property name="syncType" expression="json-eval($.syncType)" scope="default"/>
-      <!-- Log Observability -->
-      <log level="custom">
-        <property name="UseCase" value="[UC-84] Sync Registration"/>
-        <property name="registrationId" expression="get-property('registrationId')"/>
-        <property name="targetSystem" expression="get-property('targetSystem')"/>
-        <property name="syncType" expression="get-property('syncType')"/>
-      </log>
-      <!-- Validate Mandatory Fields -->
-      <filter xpath="string-length(get-property('registrationId')) = 0 or 
-                           string-length(get-property('targetSystem')) = 0 or 
-                           string-length(get-property('syncType')) = 0">
-        <then>
-          <property name="HTTP_SC" value="400" scope="axis2"/>
-          <payloadFactory media-type="json">
-            <format>
-              {
-              "error": {
-              "code": "400",
-              "message": "Missing mandatory fields"
-              }
-              }
-            </format>
-            <args/>
-          </payloadFactory>
-          <respond/>
-        </then>
-        <else>
-          <!-- Call Backend via BackendConnection -->
-          <!-- Backend chịu trách nhiệm:
-                         - Kiểm tra hồ sơ hợp lệ
-                         - Không đồng bộ hồ sơ đã hủy
-                         - Đảm bảo idempotent -->
-          <http.post configKey="BackendConnection">
-            <relativePath>/api/v1/sync/registrations</relativePath>
-            <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
-          </http.post>
-        </else>
-      </filter>
-      <respond/>
-    </inSequence>
-    <outSequence/>
-    <faultSequence>
-      <log level="custom">
-        <property name="Error" value="[UC-84] Error Processing"/>
-        <property name="registrationId" expression="get-property('registrationId')"/>
-        <property name="ERROR_CODE" expression="get-property('ERROR_CODE')"/>
-        <property name="ERROR_MESSAGE" expression="get-property('ERROR_MESSAGE')"/>
-      </log>
-      <respond/>
-    </faultSequence>
-  </resource>
-  <!-- ================= UC-85: Tra cứu trạng thái đồng bộ ================= -->
-  <resource methods="GET" uri-template="/{syncId}/status">
-    <inSequence>
-      <!-- Extract Path Param -->
-      <property name="syncId" expression="get-property('uri.var.syncId')" scope="default"/>
-      <!-- Log Observability -->
-      <log level="custom">
-        <property name="UseCase" value="[UC-85] Get Sync Status"/>
-        <property name="syncId" expression="get-property('syncId')"/>
-      </log>
-      <!-- Validate Mandatory Path Param -->
-      <filter xpath="string-length(get-property('syncId')) = 0">
-        <then>
-          <property name="HTTP_SC" value="400" scope="axis2"/>
-          <payloadFactory media-type="json">
-            <format>
-              {
-              "error": {
-              "code": "400",
-              "message": "syncId is required"
-              }
-              }
-            </format>
-            <args/>
-          </payloadFactory>
-          <respond/>
-        </then>
-        <else>
-          <!-- Call Backend via BackendConnection -->
-          <http.get configKey="BackendConnection">
-            <relativePath>/api/v1/sync/{uri.var.syncId}/status</relativePath>
-          </http.get>
-        </else>
-      </filter>
-      <respond/>
-    </inSequence>
-    <outSequence/>
-    <faultSequence>
-      <log level="custom">
-        <property name="Error" value="[UC-85] Error Processing"/>
-        <property name="syncId" expression="get-property('syncId')"/>
-        <property name="ERROR_CODE" expression="get-property('ERROR_CODE')"/>
-        <property name="ERROR_MESSAGE" expression="get-property('ERROR_MESSAGE')"/>
-      </log>
-      <respond/>
-    </faultSequence>
-  </resource>
-  <!-- ================= UC-86: Đồng bộ lại dữ liệu bị lỗi ================= -->
-  <resource methods="POST" uri-template="/{syncId}/retry">
-    <inSequence>
-      <!-- Extract Header -->
-      <property name="contentType" expression="get-property('axis2','ContentType')" scope="default"/>
-      <!-- Extract Path Param -->
-      <property name="syncId" expression="get-property('uri.var.syncId')" scope="default"/>
-      <!-- Log Observability -->
-      <log level="custom">
-        <property name="UseCase" value="[UC-86] Retry Sync Session"/>
-        <property name="syncId" expression="get-property('syncId')"/>
-      </log>
-      <!-- Validate Mandatory Path Param -->
-      <filter xpath="string-length(get-property('syncId')) = 0">
-        <then>
-          <property name="HTTP_SC" value="400" scope="axis2"/>
-          <payloadFactory media-type="json">
-            <format>
-              {
-              "error": {
-              "code": "400",
-              "message": "syncId is required"
-              }
-              }
-            </format>
-            <args/>
-          </payloadFactory>
-          <respond/>
-        </then>
-        <else>
-          <!-- Call Backend via BackendConnection -->
-          <!-- Backend chịu trách nhiệm:
-                         - Kiểm tra failedCount > 0
-                         - Không có retry đang chạy
-                         - Giới hạn số lần retry
-                         - Ghi log retry riêng -->
-          <http.post configKey="BackendConnection">
-            <relativePath>/api/v1/sync/{uri.var.syncId}/retry</relativePath>
-            <headers>[["Content-Type","{$ctx:contentType}"]]</headers>
-          </http.post>
-        </else>
-      </filter>
-      <respond/>
-    </inSequence>
-    <outSequence/>
-    <faultSequence>
-      <log level="custom">
-        <property name="Error" value="[UC-86] Error Processing"/>
-        <property name="syncId" expression="get-property('syncId')"/>
-        <property name="ERROR_CODE" expression="get-property('ERROR_CODE')"/>
-        <property name="ERROR_MESSAGE" expression="get-property('ERROR_MESSAGE')"/>
-      </log>
-      <respond/>
-    </faultSequence>
-  </resource>
+            </http.post>
+            <respond/>
+        </inSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Status" value="\[UC-83\] Fault Occurred During Master Data Sync"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ================================================= -->
+    <!-- UC-84: Đồng bộ hồ sơ                              -->
+    <!-- ================================================= -->
+    <resource methods="POST" uri-template="/registrations">
+        <inSequence>
+            <property name="contentType" expression="get-property('axis2', 'ContentType')" scope="default"/>
+            <property name="authToken" expression="get-property('BackendAuthToken')" scope="default"/>
+
+            <log level="custom">
+                <property name="UseCase" value="UC84-SyncRegistration"/>
+                <property name="Action" value="Requesting registration sync"/>
+            </log>
+
+            <header name="Authorization" expression="get-property('authToken')" scope="transport"/>
+            <header name="Content-Type" expression="get-property('contentType')" scope="transport"/>
+            <http.post configKey="BackendConnection">
+                <relativePath>/api/v1/sync/registrations</relativePath>
+            </http.post>
+            <respond/>
+        </inSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Status" value="\[UC-84\] Fault Occurred During Registration Sync"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ================================================= -->
+    <!-- UC-85: Tra cứu trạng thái đồng bộ                 -->
+    <!-- ================================================= -->
+    <resource methods="GET" uri-template="/{syncId}/status">
+        <inSequence>
+            <property name="syncId" expression="get-property('uri.var.syncId')" scope="default"/>
+            <property name="authToken" expression="get-property('BackendAuthToken')" scope="default"/>
+            <property name="backendPath" expression="fn:concat('/api/v1/sync/', get-property('syncId'), '/status')" scope="default"/>
+
+            <log level="custom">
+                <property name="UseCase" value="UC85-SyncStatusQuery"/>
+                <property name="syncId" expression="get-property('syncId')"/>
+            </log>
+
+            <header name="Authorization" expression="get-property('authToken')" scope="transport"/>
+            <http.get configKey="BackendConnection">
+                <relativePath>{$ctx:backendPath}</relativePath>
+            </http.get>
+            <respond/>
+        </inSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Status" value="\[UC-85\] Fault Occurred During Sync Status Query"/>
+                <property name="syncId" expression="get-property('syncId')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ================================================= -->
+    <!-- UC-86: Đồng bộ lại dữ liệu lỗi                    -->
+    <!-- ================================================= -->
+    <resource methods="POST" uri-template="/{syncId}/retry">
+        <inSequence>
+            <property name="syncId" expression="get-property('uri.var.syncId')" scope="default"/>
+            <property name="authToken" expression="get-property('BackendAuthToken')" scope="default"/>
+            <property name="backendPath" expression="fn:concat('/api/v1/sync/', get-property('syncId'), '/retry')" scope="default"/>
+
+            <log level="custom">
+                <property name="UseCase" value="UC86-SyncRetry"/>
+                <property name="syncId" expression="get-property('syncId')"/>
+            </log>
+
+            <header name="Authorization" expression="get-property('authToken')" scope="transport"/>
+            <http.post configKey="BackendConnection">
+                <relativePath>{$ctx:backendPath}</relativePath>
+            </http.post>
+            <respond/>
+        </inSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Status" value="\[UC-86\] Fault Occurred During Sync Retry"/>
+                <property name="syncId" expression="get-property('syncId')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
 </api>

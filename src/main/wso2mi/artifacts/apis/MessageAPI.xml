@@ -1,133 +1,71 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<api context="/messageapi" name="MessageAPI" xmlns="http://ws.apache.org/ns/synapse">
-    <!-- UC 29-->
+<api context="/api/v1/messages" name="MessagesAPI" xmlns="http://ws.apache.org/ns/synapse">
+
+    <!-- ================= UC-29 ================= -->
     <resource methods="POST" uri-template="/parse">
         <inSequence>
-            <!-- Đọc Content-Type từ request để forward xuống backend -->
             <property name="contentType" expression="get-property('axis2', 'ContentType')" scope="default"/>
-            <!-- Load Backend Auth Token -->
-            <property name="authToken" expression="get-property('registry', 'local://BackendAuthToken')" scope="default"/>
-            <property expression="//rawMessage/requestId/text()" name="requestId" scope="default" type="STRING"/>
-            <property expression="//rawMessage/procedureCode/text()" name="procedureCode" scope="default" type="STRING"/>
-            <property expression="//rawMessage/registrationId/text()" name="registrationId" scope="default" type="STRING"/>
+            <property name="authToken" expression="get-property('BackendAuthToken')" scope="default"/>
+            <property name="backendPath" value="/api/v1/messages/parse" scope="default"/>
+
+            <!-- Log -->
             <log level="custom">
-                <property name="Status" value="[UC-29] Analyzing Message Content"/>
-                <property name="requestId" expression="get-property('requestId')"/>
-                <property name="procedureCode" expression="get-property('procedureCode')"/>
-                <property name="registrationId" expression="get-property('registrationId')"/>
+                <property name="UseCase" value="UC29-MessageParse"/>
+                <property name="backendPath" expression="get-property('backendPath')"/>
+                <property name="Action" value="Forwarding message for parsing"/>
             </log>
 
-            <switch source="get-property('procedureCode')">
-                <case regex="PC_01">
-                    <http.post configKey="BackendConnection">
-                        <relativePath>/api/v1/messages/parse</relativePath>
-                        <headers>[["Content-Type","{$ctx:contentType}"],["Authorization","{$ctx:authToken}"]]</headers>
-                        <responseVariable>parseResponse</responseVariable>
-                    </http.post>
-                </case>
-                <case regex="PC_02">
-                    <http.post configKey="BackendConnection">
-                        <relativePath>/api/v1/messages/parse</relativePath>
-                        <headers>[["Content-Type","{$ctx:contentType}"],["Authorization","{$ctx:authToken}"]]</headers>
-                        <responseVariable>parseResponse</responseVariable>
-                    </http.post>
-                </case>
-                <default>
-                    <http.post configKey="BackendConnection">
-                        <relativePath>/api/v1/messages/parse</relativePath>
-                        <headers>[["Content-Type","{$ctx:contentType}"],["Authorization","{$ctx:authToken}"]]</headers>
-                        <responseVariable>parseResponse</responseVariable>
-                    </http.post>
-                </default>
-            </switch>
-
-            <property name="messageType" scope="axis2" type="STRING" value="application/json"/>
+            <!-- Backend Call -->
+            <header name="Authorization" expression="get-property('authToken')" scope="transport"/>
+            <header name="Content-Type" expression="get-property('contentType')" scope="transport"/>
+            <http.post configKey="BackendConnection">
+                <relativePath>{$ctx:backendPath}</relativePath>
+            </http.post>
             <respond/>
         </inSequence>
         <outSequence/>
         <faultSequence>
             <log level="custom">
-                <property name="Error" value="[UC-29] Analysis Failed"/>
-                <property name="Details" expression="get-property('ERROR_MESSAGE')"/>
+                <property name="Status" value="\[UC-29\] Fault Occurred During Message Parse Routing"/>
             </log>
-            <property name="HTTP_SC" scope="axis2" type="STRING" value="500"/>
-            <payloadFactory media-type="json">
-                <format>{"messageId": "ERROR", "parsed": false, "error": "$1"}</format>
-                <args>
-                    <arg evaluator="xml" expression="get-property('ERROR_MESSAGE')"/>
-                </args>
-            </payloadFactory>
             <respond/>
         </faultSequence>
     </resource>
-    <!-- UC 30-->
+
+    <!-- ================= UC-30 ================= -->
     <resource methods="POST" uri-template="/store">
         <inSequence>
-            <!-- Đọc Content-Type từ request để forward xuống backend -->
+            <!-- 1. Extract Properties -->
+            <property name="messageId" expression="//messageId/text()" scope="default"/>
+            <property name="hasParsedContent" expression="boolean(//parsedContent)" scope="default" type="BOOLEAN"/>
             <property name="contentType" expression="get-property('axis2', 'ContentType')" scope="default"/>
-            <!-- Load Backend Auth Token -->
-            <property name="authToken" expression="get-property('registry', 'local://BackendAuthToken')" scope="default"/>
-            <property expression="//messageId/text()" name="messageId" scope="default" type="STRING"/>
-            <property expression="//requestId/text() | //parsedContent//requestId/text()" name="requestId" scope="default" type="STRING"/>
-            <property expression="//procedureCode/text() | //parsedContent//procedureCode/text()" name="procedureCode" scope="default" type="STRING"/>
-            <property expression="//registrationId/text() | //parsedContent//registrationId/text()" name="registrationId" scope="default" type="STRING"/>
+            <property name="authToken" expression="get-property('BackendAuthToken')" scope="default"/>
+            <property name="backendPath" value="/api/v1/messages/store" scope="default"/>
+
+            <!-- 2. Processing (Validation Removed as per user request) -->
             <log level="custom">
-                <property name="Status" value="[UC-30] Storing Message Content"/>
+                <property name="UseCase" value="UC30-MessageStore"/>
                 <property name="messageId" expression="get-property('messageId')"/>
-                <property name="requestId" expression="get-property('requestId')"/>
-                <property name="procedureCode" expression="get-property('procedureCode')"/>
-                <property name="registrationId" expression="get-property('registrationId')"/>
+                <property name="backendPath" expression="get-property('backendPath')"/>
+                <property name="Action" value="Forwarding parsed content to Backend for DB storage"/>
             </log>
 
-            <switch source="get-property('procedureCode')">
-                <case regex="PROC_URGENT">
-                    <!-- Urgent: retry nhanh, timeout ngắn -->
-                    <http.post configKey="BackendConnection">
-                        <relativePath>/api/v1/messages/store</relativePath>
-                        <headers>[["Content-Type","application/json"]]</headers>
-                        <responseVariable>storeResponse</responseVariable>
-                    </http.post>
-                </case>
-                <case regex="PROC_ARCHIVE">
-                    <!-- Archive: không retry -->
-                    <http.post configKey="BackendConnection">
-                        <relativePath>/api/v1/messages/store</relativePath>
-                        <headers>[["Content-Type","{$ctx:contentType}"],["Authorization","{$ctx:authToken}"]]</headers>
-                        <responseVariable>storeResponse</responseVariable>
-                    </http.post>
-                </case>
-                <default>
-                    <!-- Standard -->
-                    <http.post configKey="BackendConnection">
-                        <relativePath>/api/v1/messages/store</relativePath>
-                        <headers>[["Content-Type","{$ctx:contentType}"],["Authorization","{$ctx:authToken}"]]</headers>
-                        <responseVariable>storeResponse</responseVariable>
-                    </http.post>
-                </default>
-            </switch>
-
+            <!-- 3. Backend Call -->
+            <header name="Authorization" expression="get-property('authToken')" scope="transport"/>
+            <header name="Content-Type" expression="get-property('contentType')" scope="transport"/>
+            <http.post configKey="BackendConnection">
+                <relativePath>{$ctx:backendPath}</relativePath>
+            </http.post>
             <respond/>
         </inSequence>
         <outSequence/>
         <faultSequence>
             <log level="custom">
-                <property name="Error" value="[UC-30] Storage Failed"/>
+                <property name="Status" value="\[UC-30\] Fault Occurred During Message Store Routing"/>
                 <property name="messageId" expression="get-property('messageId')"/>
-                <property name="FaultMessage" expression="get-property('ERROR_MESSAGE')"/>
             </log>
-            <payloadFactory media-type="xml">
-                <format>
-                    <error>
-                        <uc>UC-30</uc>
-                        <message>Lưu trữ thông điệp thất bại</message>
-                        <detail>$1</detail>
-                    </error>
-                </format>
-                <args>
-                    <arg evaluator="xml" expression="get-property('ERROR_MESSAGE')"/>
-                </args>
-            </payloadFactory>
             <respond/>
         </faultSequence>
     </resource>
+
 </api>

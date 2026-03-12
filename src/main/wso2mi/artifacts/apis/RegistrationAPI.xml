@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/api/v1/registrations"
+     name="RegistrationAPI"
+     xmlns="http://ws.apache.org/ns/synapse">
+
+    <!-- ================================================= -->
+    <!-- UC-73: Query Registration By ID                   -->
+    <!-- ================================================= -->
+    <resource methods="GET" uri-template="/{registrationId}">
+        <inSequence>
+            <!-- 1. Extract Properties -->
+            <property name="registrationId" expression="get-property('uri.var.registrationId')" scope="default"/>
+            <property name="authToken" expression="get-property('BackendAuthToken')" scope="default"/>
+            <property name="backendPath" expression="fn:concat('/api/v1/registrations/', get-property('registrationId'))" scope="default"/>
+
+            <!-- 2. Validate Compulsory Fields -->
+            <filter xpath="string-length(get-property('registrationId')) = 0">
+                <then>
+                    <property name="HTTP_SC" value="400" scope="axis2"/>
+                    <payloadFactory media-type="xml">
+                        <format>
+                            <error>
+                                <code>400</code>
+                                <message>Missing compulsory field (registrationId)</message>
+                            </error>
+                        </format>
+                        <args/>
+                    </payloadFactory>
+                    <respond/>
+                </then>
+                <else>
+                    <!-- 3. Validation Passed -> Log Details -->
+                    <log level="custom">
+                        <property name="UseCase" value="UC73-QueryRegistrationById"/>
+                        <property name="registrationId" expression="get-property('registrationId')"/>
+                        <property name="backendPath" expression="get-property('backendPath')"/>
+                    </log>
+
+                    <!-- 4. Backend Call -->
+                    <header name="Authorization" expression="get-property('authToken')" scope="transport"/>
+                    <http.get configKey="BackendConnection">
+                        <relativePath>{$ctx:backendPath}</relativePath>
+                    </http.get>
+                    <respond/>
+                </else>
+            </filter>
+        </inSequence>
+        <outSequence/>
+        <faultSequence>
+            <log level="custom">
+                <property name="Status" value="\[UC-73\] Fault Occurred"/>
+                <property name="registrationId" expression="get-property('registrationId')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ================================================= -->
+    <!-- UC-74: Registration Search                        -->
+    <!-- ================================================= -->
+    <resource methods="GET" uri-template="">
+        <inSequence>
+            <!-- 1. Extract Properties for observability -->
+            <property name="procedureCode" expression="$url:procedureCode" scope="default"/>
+            <property name="enterpriseId" expression="$url:enterpriseId" scope="default"/>
+            <property name="status" expression="$url:status" scope="default"/>
+            <property name="fromDate" expression="$url:fromDate" scope="default"/>
+            <property name="toDate" expression="$url:toDate" scope="default"/>
+            <property name="page" expression="$url:page" scope="default"/>
+            <property name="size" expression="$url:size" scope="default"/>
+            <property name="authToken" expression="get-property('BackendAuthToken')" scope="default"/>
+
+            <!-- 2. Logging -->
+            <log level="custom">
+                <property name="UseCase" value="UC74-RegistrationSearch"/>
+                <property name="procedureCode" expression="get-property('procedureCode')"/>
+                <property name="enterpriseId" expression="get-property('enterpriseId')"/>
+                <property name="status" expression="get-property('status')"/>
+                <property name="page" expression="get-property('page')"/>
+            </log>
+
+            <!-- 3. Backend Call -->
+            <header name="Authorization" expression="get-property('authToken')" scope="transport"/>
+            <http.get configKey="BackendConnection">
+                <relativePath>/api/v1/registrations</relativePath>
+            </http.get>
+            <respond/>
+        </inSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Status" value="\[UC-74\] Fault Occurred"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ================================================= -->
+    <!-- UC-75: Query Documents By Registration            -->
+    <!-- ================================================= -->
+    <resource methods="GET" uri-template="/{registrationId}/documents">
+        <inSequence>
+            <property name="registrationId" expression="get-property('uri.var.registrationId')" scope="default"/>
+            <property name="authToken" expression="get-property('BackendAuthToken')" scope="default"/>
+            <property name="backendPath" expression="fn:concat('/api/v1/registrations/', get-property('registrationId'), '/documents')" scope="default"/>
+
+            <log level="custom">
+                <property name="UseCase" value="UC75-QueryDocumentsByReg"/>
+                <property name="registrationId" expression="get-property('registrationId')"/>
+                <property name="backendPath" expression="get-property('backendPath')"/>
+            </log>
+
+            <header name="Authorization" expression="get-property('authToken')" scope="transport"/>
+            <http.get configKey="BackendConnection">
+                <relativePath>{$ctx:backendPath}</relativePath>
+            </http.get>
+            <respond/>
+        </inSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Status" value="\[UC-75\] Fault Occurred"/>
+                <property name="registrationId" expression="get-property('registrationId')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ================================================= -->
+    <!-- UC-76: Query Registration History                 -->
+    <!-- ================================================= -->
+    <resource methods="GET" uri-template="/{registrationId}/history">
+        <inSequence>
+            <property name="registrationId" expression="get-property('uri.var.registrationId')" scope="default"/>
+            <property name="authToken" expression="get-property('BackendAuthToken')" scope="default"/>
+            <property name="backendPath" expression="fn:concat('/api/v1/registrations/', get-property('registrationId'), '/history')" scope="default"/>
+
+            <log level="custom">
+                <property name="UseCase" value="UC76-QueryRegHistory"/>
+                <property name="registrationId" expression="get-property('registrationId')"/>
+                <property name="backendPath" expression="get-property('backendPath')"/>
+            </log>
+
+            <header name="Authorization" expression="get-property('authToken')" scope="transport"/>
+            <http.get configKey="BackendConnection">
+                <relativePath>{$ctx:backendPath}</relativePath>
+            </http.get>
+            <respond/>
+        </inSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Status" value="\[UC-76\] Fault Occurred"/>
+                <property name="registrationId" expression="get-property('registrationId')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ================================================= -->
+    <!-- UC-77: Query Registration Status                  -->
+    <!-- ================================================= -->
+    <resource methods="GET" uri-template="/{registrationId}/status">
+        <inSequence>
+            <property name="registrationId" expression="get-property('uri.var.registrationId')" scope="default"/>
+            <property name="authToken" expression="get-property('BackendAuthToken')" scope="default"/>
+            <property name="backendPath" expression="fn:concat('/api/v1/registrations/', get-property('registrationId'), '/status')" scope="default"/>
+
+            <log level="custom">
+                <property name="UseCase" value="UC77-QueryRegStatus"/>
+                <property name="registrationId" expression="get-property('registrationId')"/>
+                <property name="backendPath" expression="get-property('backendPath')"/>
+            </log>
+
+            <header name="Authorization" expression="get-property('authToken')" scope="transport"/>
+            <http.get configKey="BackendConnection">
+                <relativePath>{$ctx:backendPath}</relativePath>
+            </http.get>
+            <respond/>
+        </inSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Status" value="\[UC-77\] Fault Occurred"/>
+                <property name="registrationId" expression="get-property('registrationId')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ================================================= -->
+    <!-- UC-78: Query Registration Response                -->
+    <!-- ================================================= -->
+    <resource methods="GET" uri-template="/{registrationId}/response">
+        <inSequence>
+            <property name="registrationId" expression="get-property('uri.var.registrationId')" scope="default"/>
+            <property name="authToken" expression="get-property('BackendAuthToken')" scope="default"/>
+            <property name="backendPath" expression="fn:concat('/api/v1/registrations/', get-property('registrationId'), '/response')" scope="default"/>
+
+            <log level="custom">
+                <property name="UseCase" value="UC78-QueryRegResponse"/>
+                <property name="registrationId" expression="get-property('registrationId')"/>
+                <property name="backendPath" expression="get-property('backendPath')"/>
+            </log>
+
+            <header name="Authorization" expression="get-property('authToken')" scope="transport"/>
+            <http.get configKey="BackendConnection">
+                <relativePath>{$ctx:backendPath}</relativePath>
+            </http.get>
+            <respond/>
+        </inSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Status" value="\[UC-78\] Fault Occurred"/>
+                <property name="registrationId" expression="get-property('registrationId')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+</api>

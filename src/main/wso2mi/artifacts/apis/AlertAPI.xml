@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/api/v1/alerts"
+     name="AlertAPI"
+     xmlns="http://ws.apache.org/ns/synapse">
+
+    <!-- ================= UC-79: Sinh cảnh báo hệ thống ================= -->
+    <resource methods="POST" uri-template="/">
+        <inSequence>
+            <!-- 1. Extract Properties -->
+            <property name="alertType" expression="//alertType/text()" scope="default"/>
+            <property name="severity" expression="//severity/text()" scope="default"/>
+            <property name="source" expression="//source/text()" scope="default"/>
+            <property name="referenceId" expression="//referenceId/text()" scope="default"/>
+            <property name="message" expression="//message/text()" scope="default"/>
+            <property name="authToken" expression="get-property('BackendAuthToken')" scope="default"/>
+            <property name="backendPath" value="/api/v1/alerts" scope="default"/>
+
+            <!-- 2. Validate Compulsory Fields -->
+            <filter xpath="string-length(get-property('alertType')) = 0 or string-length(get-property('severity')) = 0 or string-length(get-property('source')) = 0 or string-length(get-property('message')) = 0">
+                <then>
+                    <property name="HTTP_SC" value="400" scope="axis2"/>
+                    <payloadFactory media-type="json">
+                        <format>
+                            {
+                                "error": {
+                                    "code": "400",
+                                    "message": "Missing compulsory fields (alertType, severity, source, message)"
+                                }
+                            }
+                        </format>
+                        <args/>
+                    </payloadFactory>
+                    <respond/>
+                </then>
+                <else>
+                    <!-- 3. Validation Passed -> Log Details -->
+                    <log level="custom">
+                        <property name="UseCase" value="UC79-CreateSystemAlert"/>
+                        <property name="alertType" expression="get-property('alertType')"/>
+                        <property name="severity" expression="get-property('severity')"/>
+                        <property name="source" expression="get-property('source')"/>
+                        <property name="backendPath" expression="get-property('backendPath')"/>
+                    </log>
+
+                    <!-- 4. Backend Call -->
+                    <header name="Authorization" expression="get-property('authToken')" scope="transport"/>
+                    <http.post configKey="BackendConnection">
+                        <relativePath>{$ctx:backendPath}</relativePath>
+                    </http.post>
+                    <respond/>
+                </else>
+            </filter>
+        </inSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-79] Fault Occurred"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ================= UC-80: Tra cứu và xử lý cảnh báo (Search) ================= -->
+    <resource methods="GET" uri-template="/">
+        <inSequence>
+            <!-- 1. Extract Properties -->
+            <property name="severity" expression="$url:severity" scope="default"/>
+            <property name="status" expression="$url:status" scope="default"/>
+            <property name="fromTime" expression="$url:fromTime" scope="default"/>
+            <property name="toTime" expression="$url:toTime" scope="default"/>
+            <property name="page" expression="$url:page" scope="default"/>
+            <property name="size" expression="$url:size" scope="default"/>
+            <property name="authToken" expression="get-property('BackendAuthToken')" scope="default"/>
+
+            <!-- 2. Logging -->
+            <log level="custom">
+                <property name="UseCase" value="UC80-SearchAlerts"/>
+                <property name="severity" expression="get-property('severity')"/>
+                <property name="status" expression="get-property('status')"/>
+            </log>
+
+            <!-- 3. Backend Call -->
+            <header name="Authorization" expression="get-property('authToken')" scope="transport"/>
+            <http.get configKey="BackendConnection">
+                <relativePath>/api/v1/alerts</relativePath>
+            </http.get>
+            <respond/>
+        </inSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-80] Fault Occurred During Search"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+    <!-- ================= UC-80: Tra cứu và xử lý cảnh báo (Update) ================= -->
+    <resource methods="PUT" uri-template="/{alertId}">
+        <inSequence>
+            <!-- 1. Extract Properties -->
+            <property name="alertId" expression="get-property('uri.var.alertId')" scope="default"/>
+            <property name="status" expression="//status/text()" scope="default"/>
+            <property name="handledBy" expression="//handledBy/text()" scope="default"/>
+            <property name="note" expression="//note/text()" scope="default"/>
+            <property name="authToken" expression="get-property('BackendAuthToken')" scope="default"/>
+            <property name="backendPath" expression="fn:concat('/api/v1/alerts/', get-property('alertId'))" scope="default"/>
+
+            <!-- 2. Validate Compulsory Fields -->
+            <filter xpath="string-length(get-property('alertId')) = 0 or string-length(get-property('status')) = 0">
+                <then>
+                    <property name="HTTP_SC" value="400" scope="axis2"/>
+                    <payloadFactory media-type="json">
+                        <format>
+                            {
+                                "error": {
+                                    "code": "400",
+                                    "message": "Missing compulsory fields (alertId, status)"
+                                }
+                            }
+                        </format>
+                        <args/>
+                    </payloadFactory>
+                    <respond/>
+                </then>
+                <else>
+                    <!-- 3. Validation Passed -> Log Details -->
+                    <log level="custom">
+                        <property name="UseCase" value="UC80-UpdateAlert"/>
+                        <property name="alertId" expression="get-property('alertId')"/>
+                        <property name="status" expression="get-property('status')"/>
+                        <property name="backendPath" expression="get-property('backendPath')"/>
+                    </log>
+
+                    <!-- 4. Backend Call -->
+                    <header name="Authorization" expression="get-property('authToken')" scope="transport"/>
+                    <http.put configKey="BackendConnection">
+                        <relativePath>{$ctx:backendPath}</relativePath>
+                    </http.put>
+                    <respond/>
+                </else>
+            </filter>
+        </inSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="Status" value="[UC-80] Fault Occurred During Update"/>
+                <property name="alertId" expression="get-property('alertId')"/>
+            </log>
+            <respond/>
+        </faultSequence>
+    </resource>
+
+</api>
