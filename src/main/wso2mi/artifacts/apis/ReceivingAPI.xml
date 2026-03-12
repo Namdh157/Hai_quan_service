@@ -10,7 +10,11 @@
                       scope="default"/>
 
             <property name="authToken"
-                      value="Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3MzIxMjIzNSwiZXhwIjoxNzczMjk4NjM1fQ.7wYswUnTzHKtsFURBLEBFHhJuLXoJooRoIorP56Uuew"
+                      expression="get-property('ReceivingBackendToken')"
+                      scope="default"/>
+
+            <property name="uri.var.backendUrl"
+                      expression="get-property('ReceivingBackendUrl')"
                       scope="default"/>
 
             <log level="custom">
@@ -31,7 +35,7 @@
             <call>
                 <endpoint>
                     <http method="POST"
-                          uri-template="http://192.168.10.196:8080/api/v1/receiving/registrations"/>
+                          uri-template="{uri.var.backendUrl}/api/v1/receiving/registrations"/>
                 </endpoint>
             </call>
 
@@ -61,7 +65,11 @@
                       scope="default"/>
 
             <property name="authToken"
-                      value="Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3MzIxMjIzNS," 
+                      expression="get-property('ReceivingBackendToken')"
+                      scope="default"/>
+
+            <property name="uri.var.backendUrl"
+                      expression="get-property('ReceivingBackendUrl')"
                       scope="default"/>
 
             <property name="registrationId"
@@ -86,7 +94,7 @@
             <call>
                 <endpoint>
                     <http method="POST"
-                          uri-template="http://192.168.10.196:8080/api/v1/internal/registrations/{uri.var.registrationId}/amend"/>
+                          uri-template="{uri.var.backendUrl}/api/v1/internal/registrations/{uri.var.registrationId}/amend"/>
                 </endpoint>
             </call>
 
@@ -116,7 +124,11 @@
                       scope="default"/>
 
             <property name="authToken"
-                      value="Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3MzIxMjIzNSwiZXhwIjoxNzczMjk4NjM1fQ.7wYswUnTzHKtsFURBLEBFHhJuLXoJooRoIorP56Uuew"
+                      expression="get-property('ReceivingBackendToken')"
+                      scope="default"/>
+
+            <property name="uri.var.backendUrl"
+                      expression="get-property('ReceivingBackendUrl')"
                       scope="default"/>
 
             <property name="registrationId"
@@ -168,7 +180,7 @@
                     <call>
                         <endpoint>
                             <http method="POST"
-                                  uri-template="http://192.168.10.196:8080/api/v1/receiving/registrations/{uri.var.registrationId}/cancel"/>
+                                  uri-template="{uri.var.backendUrl}/api/v1/receiving/registrations/{uri.var.registrationId}/cancel"/>
                         </endpoint>
                     </call>
 
