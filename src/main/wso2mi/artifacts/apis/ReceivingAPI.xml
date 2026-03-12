@@ -8,6 +8,11 @@
 
         <inSequence>
 
+            <!-- requestId -->
+            <property name="requestId"
+                      expression="//requestId/text()"
+                      scope="default"/>
+
             <!-- Token -->
             <property name="authToken"
                       expression="get-property('BackendAuthToken')"
@@ -18,24 +23,50 @@
                       value="/api/v1/receiving/registrations"
                       scope="default"/>
 
-            <!-- Log -->
-            <log level="custom">
-                <property name="UseCase" value="UC22-NewRegistration"/>
-                <property name="backendPath" expression="get-property('backendPath')"/>
-                <property name="authToken" expression="get-property('authToken')"/>
-            </log>
+            <!-- IF requestId missing -->
+            <filter xpath="string-length(get-property('requestId')) = 0">
 
-            <!-- Authorization -->
-            <header name="Authorization"
-                    expression="get-property('authToken')"
-                    scope="transport"/>
+                <then>
 
-            <!-- Call backend -->
-            <http.post configKey="BackendConnection">
-                <relativePath>{$ctx:backendPath}</relativePath>
-            </http.post>
+                    <property name="HTTP_SC" value="400" scope="axis2"/>
 
-            <respond/>
+                    <payloadFactory media-type="xml">
+                        <format>
+                            <error>
+                                <code>400</code>
+                                <message>requestId is required</message>
+                            </error>
+                        </format>
+                        <args/>
+                    </payloadFactory>
+
+                    <respond/>
+
+                </then>
+
+                <else>
+
+                    <!-- Log -->
+                    <log level="custom">
+                        <property name="UseCase" value="UC22-NewRegistration"/>
+                        <property name="requestId" expression="get-property('requestId')"/>
+                        <property name="backendPath" expression="get-property('backendPath')"/>
+                    </log>
+
+                    <!-- Authorization -->
+                    <header name="Authorization"
+                            expression="get-property('authToken')"
+                            scope="transport"/>
+
+                    <http.post configKey="BackendConnection">
+                        <relativePath>{$ctx:backendPath}</relativePath>
+                    </http.post>
+
+                    <respond/>
+
+                </else>
+
+            </filter>
 
         </inSequence>
 
@@ -47,40 +78,65 @@
 
         <inSequence>
 
-            <!-- registrationId -->
             <property name="registrationId"
                       expression="get-property('uri.var.registrationId')"
                       scope="default"/>
 
-            <!-- Token -->
+            <property name="requestId"
+                      expression="//requestId/text()"
+                      scope="default"/>
+
             <property name="authToken"
                       expression="get-property('BackendAuthToken')"
                       scope="default"/>
 
-            <!-- Backend path -->
             <property name="backendPath"
                       expression="fn:concat('/api/v1/receiving/registrations/', get-property('registrationId'), '/amend')"
                       scope="default"/>
 
-            <!-- Log -->
-            <log level="custom">
-                <property name="UseCase" value="UC23-AmendRegistration"/>
-                <property name="registrationId" expression="get-property('registrationId')"/>
-                <property name="backendPath" expression="get-property('backendPath')"/>
-                <property name="authToken" expression="get-property('authToken')"/>
-            </log>
+            <!-- IF requestId missing -->
+            <filter xpath="string-length(get-property('requestId')) = 0">
 
-            <!-- Authorization -->
-            <header name="Authorization"
-                    expression="get-property('authToken')"
-                    scope="transport"/>
+                <then>
 
-            <!-- Call backend -->
-            <http.post configKey="BackendConnection">
-                <relativePath>{$ctx:backendPath}</relativePath>
-            </http.post>
+                    <property name="HTTP_SC" value="400" scope="axis2"/>
 
-            <respond/>
+                    <payloadFactory media-type="xml">
+                        <format>
+                            <error>
+                                <code>400</code>
+                                <message>requestId is required</message>
+                            </error>
+                        </format>
+                        <args/>
+                    </payloadFactory>
+
+                    <respond/>
+
+                </then>
+
+                <else>
+
+                    <log level="custom">
+                        <property name="UseCase" value="UC23-AmendRegistration"/>
+                        <property name="registrationId" expression="get-property('registrationId')"/>
+                        <property name="requestId" expression="get-property('requestId')"/>
+                        <property name="backendPath" expression="get-property('backendPath')"/>
+                    </log>
+
+                    <header name="Authorization"
+                            expression="get-property('authToken')"
+                            scope="transport"/>
+
+                    <http.post configKey="BackendConnection">
+                        <relativePath>{$ctx:backendPath}</relativePath>
+                    </http.post>
+
+                    <respond/>
+
+                </else>
+
+            </filter>
 
         </inSequence>
 
@@ -92,46 +148,69 @@
 
         <inSequence>
 
-            <!-- registrationId -->
             <property name="registrationId"
                       expression="get-property('uri.var.registrationId')"
                       scope="default"/>
 
-            <!-- cancelReason -->
+            <property name="requestId"
+                      expression="//requestId/text()"
+                      scope="default"/>
+
             <property name="cancelReason"
                       expression="//cancelReason/text()"
                       scope="default"/>
 
-            <!-- Token -->
             <property name="authToken"
                       expression="get-property('BackendAuthToken')"
                       scope="default"/>
 
-            <!-- Backend path -->
             <property name="backendPath"
                       expression="fn:concat('/api/v1/receiving/registrations/', get-property('registrationId'), '/cancel')"
                       scope="default"/>
 
-            <!-- Log -->
-            <log level="custom">
-                <property name="UseCase" value="UC24-CancelRegistration"/>
-                <property name="registrationId" expression="get-property('registrationId')"/>
-                <property name="cancelReason" expression="get-property('cancelReason')"/>
-                <property name="backendPath" expression="get-property('backendPath')"/>
-                <property name="authToken" expression="get-property('authToken')"/>
-            </log>
+            <!-- IF cancelReason missing -->
+            <filter xpath="string-length(get-property('cancelReason')) = 0">
 
-            <!-- Authorization -->
-            <header name="Authorization"
-                    expression="get-property('authToken')"
-                    scope="transport"/>
+                <then>
 
-            <!-- Call backend -->
-            <http.post configKey="BackendConnection">
-                <relativePath>{$ctx:backendPath}</relativePath>
-            </http.post>
+                    <property name="HTTP_SC" value="400" scope="axis2"/>
 
-            <respond/>
+                    <payloadFactory media-type="xml">
+                        <format>
+                            <error>
+                                <code>400</code>
+                                <message>cancelReason is required</message>
+                            </error>
+                        </format>
+                        <args/>
+                    </payloadFactory>
+
+                    <respond/>
+
+                </then>
+
+                <else>
+
+                    <log level="custom">
+                        <property name="UseCase" value="UC24-CancelRegistration"/>
+                        <property name="registrationId" expression="get-property('registrationId')"/>
+                        <property name="cancelReason" expression="get-property('cancelReason')"/>
+                        <property name="backendPath" expression="get-property('backendPath')"/>
+                    </log>
+
+                    <header name="Authorization"
+                            expression="get-property('authToken')"
+                            scope="transport"/>
+
+                    <http.post configKey="BackendConnection">
+                        <relativePath>{$ctx:backendPath}</relativePath>
+                    </http.post>
+
+                    <respond/>
+
+                </else>
+
+            </filter>
 
         </inSequence>
 
