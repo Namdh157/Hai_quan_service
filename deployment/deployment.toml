@@ -129,20 +129,3 @@ algorithm = "AES"
 # service_url = "https://localhost:8080/transactions/records"
 # service_username = "admin"
 # service_password = "admin"
-
-[[datasource]]
-# name = "LifeESB_DS"
-# jndiName = "jdbc/LifeESB_DS"
-# url = "jdbc:sqlserver://localhost:1433;databaseName=wo2;encrypt=true;trustServerCertificate=true"
-# username = "sa"
-# password = "Admin@123456"
-# driverClassName = "com.microsoft.sqlserver.jdbc.SQLServerDriver"
-
-# ===== Connection Pool Settings =====
-# maxActive = 50
-# maxWait = 60000
-# minIdle = 5
-#maxIdle = 20
-# validationQuery = "SELECT 1"
-# validationInterval = 30000
-# testOnBorrow = true

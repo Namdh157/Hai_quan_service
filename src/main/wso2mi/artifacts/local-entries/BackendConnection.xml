@@ -1,16 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <localEntry key="BackendConnection" xmlns="http://ws.apache.org/ns/synapse">
-    <http.init>
-        <connectionType>HTTP</connectionType>
-        <baseUrl>https://base-angular-backend.lifetex.vn</baseUrl>
-        <authType>None</authType>
-        <timeoutDuration>30000</timeoutDuration>
-        <timeoutAction>Fault</timeoutAction>
-        <retryCount>3</retryCount>
-        <retryDelay>2000</retryDelay>
-        <suspendInitialDuration>2000</suspendInitialDuration>
-        <suspendProgressionFactor>1.0</suspendProgressionFactor>
-        <suspendMaximumDuration>3000</suspendMaximumDuration>
-        <name>BackendConnection</name>
-    </http.init>
+<endpoint name="BackendConnection" xmlns="http://ws.apache.org/ns/synapse">
+    <http uri-template="http://192.168.10.196:8080">
+        <suspendOnFailure>
+            <initialDuration>2000</initialDuration>
+            <progressionFactor>1.0</progressionFactor>
+            <maximumDuration>3000</maximumDuration>
+        </suspendOnFailure>
+        <markForSuspension>
+            <retriesBeforeSuspension>3</retriesBeforeSuspension>
+            <retryDelay>2000</retryDelay>
+        </markForSuspension>
+        <timeout>
+            <duration>30000</duration>
+            <responseAction>fault</responseAction>
+        </timeout>
+    </http>
+</endpoint>
 </localEntry>
