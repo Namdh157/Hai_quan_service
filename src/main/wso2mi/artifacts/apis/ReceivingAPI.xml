@@ -8,20 +8,31 @@
 
         <inSequence>
 
+            <!-- Token -->
             <property name="authToken"
-                      expression="get-property('ReceivingBackendToken')"
+                      expression="get-property('BackendAuthToken')"
                       scope="default"/>
 
+            <!-- Backend path -->
+            <property name="backendPath"
+                      value="/api/v1/receiving/registrations"
+                      scope="default"/>
+
+            <!-- Log -->
+            <log level="custom">
+                <property name="UseCase" value="UC22-NewRegistration"/>
+                <property name="backendPath" expression="get-property('backendPath')"/>
+                <property name="authToken" expression="get-property('authToken')"/>
+            </log>
+
+            <!-- Authorization -->
             <header name="Authorization"
                     expression="get-property('authToken')"
                     scope="transport"/>
 
-            <log level="custom">
-                <property name="UseCase" value="UC22-NewRegistration"/>
-            </log>
-
+            <!-- Call backend -->
             <http.post configKey="BackendConnection">
-                <relativePath>/api/v1/receiving/registrations</relativePath>
+                <relativePath>{$ctx:backendPath}</relativePath>
             </http.post>
 
             <respond/>
@@ -36,28 +47,37 @@
 
         <inSequence>
 
+            <!-- registrationId -->
             <property name="registrationId"
                       expression="get-property('uri.var.registrationId')"
                       scope="default"/>
 
+            <!-- Token -->
             <property name="authToken"
-                      expression="get-property('ReceivingBackendToken')"
+                      expression="get-property('BackendAuthToken')"
                       scope="default"/>
 
+            <!-- Backend path -->
+            <property name="backendPath"
+                      expression="fn:concat('/api/v1/receiving/registrations/', get-property('registrationId'), '/amend')"
+                      scope="default"/>
+
+            <!-- Log -->
+            <log level="custom">
+                <property name="UseCase" value="UC23-AmendRegistration"/>
+                <property name="registrationId" expression="get-property('registrationId')"/>
+                <property name="backendPath" expression="get-property('backendPath')"/>
+                <property name="authToken" expression="get-property('authToken')"/>
+            </log>
+
+            <!-- Authorization -->
             <header name="Authorization"
                     expression="get-property('authToken')"
                     scope="transport"/>
 
-            <log level="custom">
-                <property name="UseCase" value="UC23-AmendRegistration"/>
-                <property name="registrationId"
-                          expression="get-property('registrationId')"/>
-            </log>
-
+            <!-- Call backend -->
             <http.post configKey="BackendConnection">
-                <relativePath>
-                    /api/v1/internal/registrations/{uri.var.registrationId}/amend
-                </relativePath>
+                <relativePath>{$ctx:backendPath}</relativePath>
             </http.post>
 
             <respond/>
@@ -72,25 +92,25 @@
 
         <inSequence>
 
-            <!-- Lấy registrationId -->
+            <!-- registrationId -->
             <property name="registrationId"
-                    expression="get-property('uri.var.registrationId')"
-                    scope="default"/>
+                      expression="get-property('uri.var.registrationId')"
+                      scope="default"/>
 
-            <!-- Lấy cancelReason -->
+            <!-- cancelReason -->
             <property name="cancelReason"
-                    expression="//cancelReason/text()"
-                    scope="default"/>
+                      expression="//cancelReason/text()"
+                      scope="default"/>
 
             <!-- Token -->
             <property name="authToken"
-                    expression="get-property('BackendAuthToken')"
-                    scope="default"/>
+                      expression="get-property('BackendAuthToken')"
+                      scope="default"/>
 
-            <!-- Build backend path -->
+            <!-- Backend path -->
             <property name="backendPath"
-                    expression="fn:concat('/api/v1/receiving/registrations/', get-property('registrationId'), '/cancel')"
-                    scope="default"/>
+                      expression="fn:concat('/api/v1/receiving/registrations/', get-property('registrationId'), '/cancel')"
+                      scope="default"/>
 
             <!-- Log -->
             <log level="custom">
@@ -113,7 +133,7 @@
 
             <respond/>
 
-            </inSequence>
+        </inSequence>
 
     </resource>
 
