@@ -1,206 +1,119 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<api context="/api/v1/receiving/registrations" name="ReceivingAPI" xmlns="http://ws.apache.org/ns/synapse">
+<api context="/api/v1/receiving/registrations"
+     name="ReceivingAPI"
+     xmlns="http://ws.apache.org/ns/synapse">
 
-    <!-- ================= UC-22: Tiếp nhận hồ sơ ================= -->
+    <!-- ================= UC22 ================= -->
     <resource methods="POST" uri-template="/">
-        <inSequence>
 
-            <property name="contentType"
-                      expression="get-property('axis2','ContentType')"
-                      scope="default"/>
+        <inSequence>
 
             <property name="authToken"
                       expression="get-property('ReceivingBackendToken')"
                       scope="default"/>
 
-            <property name="uri.var.backendUrl"
-                      expression="get-property('ReceivingBackendUrl')"
-                      scope="default"/>
-
-            <log level="custom">
-                <property name="UseCase" value="UC22-NewRegistration"/>
-                <property name="requestId" expression="//requestId/text()"/>
-            </log>
-
-            <header name="Authorization" action="remove" scope="transport"/>
-
             <header name="Authorization"
                     expression="get-property('authToken')"
                     scope="transport"/>
 
-            <header name="Content-Type"
-                    expression="get-property('contentType')"
-                    scope="transport"/>
+            <log level="custom">
+                <property name="UseCase" value="UC22-NewRegistration"/>
+            </log>
 
-            <call>
-                <endpoint>
-                    <http method="POST"
-                          uri-template="{uri.var.backendUrl}/api/v1/receiving/registrations"/>
-                </endpoint>
-            </call>
+            <http.post configKey="BackendConnection">
+                <relativePath>/api/v1/receiving/registrations</relativePath>
+            </http.post>
 
             <respond/>
 
         </inSequence>
 
-        <outSequence/>
-
-        <faultSequence>
-            <log level="custom">
-                <property name="Error" value="UC22 Error"/>
-                <property name="ERROR_MESSAGE" expression="get-property('ERROR_MESSAGE')"/>
-            </log>
-            <respond/>
-        </faultSequence>
     </resource>
 
 
-    <!-- ================= UC-23: Sửa hồ sơ ================= -->
+    <!-- ================= UC23 ================= -->
     <resource methods="POST" uri-template="/{registrationId}/amend">
 
         <inSequence>
 
-            <property name="contentType"
-                      expression="get-property('axis2','ContentType')"
+            <property name="registrationId"
+                      expression="get-property('uri.var.registrationId')"
                       scope="default"/>
 
             <property name="authToken"
                       expression="get-property('ReceivingBackendToken')"
                       scope="default"/>
-
-            <property name="uri.var.backendUrl"
-                      expression="get-property('ReceivingBackendUrl')"
-                      scope="default"/>
-
-            <property name="registrationId"
-                      expression="get-property('uri.var.registrationId')"
-                      scope="default"/>
-
-            <log level="custom">
-                <property name="UseCase" value="UC23-AmendRegistration"/>
-                <property name="registrationId" expression="get-property('registrationId')"/>
-            </log>
-
-            <header name="Authorization" action="remove" scope="transport"/>
 
             <header name="Authorization"
                     expression="get-property('authToken')"
                     scope="transport"/>
 
-            <header name="Content-Type"
-                    expression="get-property('contentType')"
-                    scope="transport"/>
+            <log level="custom">
+                <property name="UseCase" value="UC23-AmendRegistration"/>
+                <property name="registrationId"
+                          expression="get-property('registrationId')"/>
+            </log>
 
-            <call>
-                <endpoint>
-                    <http method="POST"
-                          uri-template="{uri.var.backendUrl}/api/v1/internal/registrations/{uri.var.registrationId}/amend"/>
-                </endpoint>
-            </call>
+            <http.post configKey="BackendConnection">
+                <relativePath>
+                    /api/v1/internal/registrations/{uri.var.registrationId}/amend
+                </relativePath>
+            </http.post>
 
             <respond/>
 
         </inSequence>
 
-        <outSequence/>
-
-        <faultSequence>
-            <log level="custom">
-                <property name="Error" value="UC23 Error"/>
-                <property name="ERROR_MESSAGE" expression="get-property('ERROR_MESSAGE')"/>
-            </log>
-            <respond/>
-        </faultSequence>
     </resource>
 
 
-    <!-- ================= UC-24: Hủy hồ sơ ================= -->
+    <!-- ================= UC24 ================= -->
     <resource methods="POST" uri-template="/{registrationId}/cancel">
 
         <inSequence>
 
-            <property name="contentType"
-                      expression="get-property('axis2','ContentType')"
-                      scope="default"/>
-
-            <property name="authToken"
-                      expression="get-property('ReceivingBackendToken')"
-                      scope="default"/>
-
-            <property name="uri.var.backendUrl"
-                      expression="get-property('ReceivingBackendUrl')"
-                      scope="default"/>
-
+            <!-- Lấy registrationId -->
             <property name="registrationId"
-                      expression="get-property('uri.var.registrationId')"
-                      scope="default"/>
+                    expression="get-property('uri.var.registrationId')"
+                    scope="default"/>
 
+            <!-- Lấy cancelReason -->
             <property name="cancelReason"
-                      expression="//cancelReason/text()"
-                      scope="default"/>
+                    expression="//cancelReason/text()"
+                    scope="default"/>
 
+            <!-- Token -->
+            <property name="authToken"
+                    expression="get-property('BackendAuthToken')"
+                    scope="default"/>
+
+            <!-- Build backend path -->
+            <property name="backendPath"
+                    expression="fn:concat('/api/v1/receiving/registrations/', get-property('registrationId'), '/cancel')"
+                    scope="default"/>
+
+            <!-- Log -->
             <log level="custom">
                 <property name="UseCase" value="UC24-CancelRegistration"/>
                 <property name="registrationId" expression="get-property('registrationId')"/>
                 <property name="cancelReason" expression="get-property('cancelReason')"/>
+                <property name="backendPath" expression="get-property('backendPath')"/>
+                <property name="authToken" expression="get-property('authToken')"/>
             </log>
 
-            <!-- Validate cancelReason -->
-            <filter xpath="string-length(get-property('cancelReason')) = 0">
-                <then>
+            <!-- Authorization -->
+            <header name="Authorization"
+                    expression="get-property('authToken')"
+                    scope="transport"/>
 
-                    <property name="HTTP_SC" value="400" scope="axis2"/>
-
-                    <payloadFactory media-type="xml">
-                        <format>
-                            <error>
-                                <code>400</code>
-                                <message>cancelReason is required</message>
-                            </error>
-                        </format>
-                        <args/>
-                    </payloadFactory>
-
-                    <respond/>
-
-                </then>
-
-                <else>
-
-                    <header name="Authorization" action="remove" scope="transport"/>
-
-                    <header name="Authorization"
-                            expression="get-property('authToken')"
-                            scope="transport"/>
-
-                    <header name="Content-Type"
-                            expression="get-property('contentType')"
-                            scope="transport"/>
-
-                    <call>
-                        <endpoint>
-                            <http method="POST"
-                                  uri-template="{uri.var.backendUrl}/api/v1/receiving/registrations/{uri.var.registrationId}/cancel"/>
-                        </endpoint>
-                    </call>
-
-                </else>
-
-            </filter>
+            <!-- Call backend -->
+            <http.post configKey="BackendConnection">
+                <relativePath>{$ctx:backendPath}</relativePath>
+            </http.post>
 
             <respond/>
 
-        </inSequence>
-
-        <outSequence/>
-
-        <faultSequence>
-            <log level="custom">
-                <property name="Error" value="UC24 Error"/>
-                <property name="ERROR_MESSAGE" expression="get-property('ERROR_MESSAGE')"/>
-            </log>
-            <respond/>
-        </faultSequence>
+            </inSequence>
 
     </resource>
 

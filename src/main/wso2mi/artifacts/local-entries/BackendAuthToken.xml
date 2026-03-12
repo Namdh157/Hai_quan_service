@@ -1,2 +1,2 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<localEntry key="BackendAuthToken" xmlns="http://ws.apache.org/ns/synapse">Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3MjU4NzE1NywiZXhwIjoxNzcyNjczNTU3fQ.Pc5_Fo_8AWvKcVGj7itkaE4K19heQOqzxMbA6zFMGMU</localEntry>
+<localEntry key="BackendAuthToken" xmlns="http://ws.apache.org/ns/synapse">Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3MzIxMjIzNSwiZXhwIjoxNzczMjk4NjM1fQ.7wYswUnTzHKtsFURBLEBFHhJuLXoJooRoIorP56Uuew</localEntry>

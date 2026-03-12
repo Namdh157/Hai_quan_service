@@ -2,7 +2,8 @@
 <localEntry key="BackendConnection" xmlns="http://ws.apache.org/ns/synapse">
     <http.init>
         <connectionType>HTTP</connectionType>
-        <baseUrl>https://base-angular-backend.lifetex.vn</baseUrl>
+        <!-- <baseUrl>https://base-angular-backend.lifetex.vn</baseUrl> -->
+        <baseUrl>http://192.168.10.196:8080</baseUrl>
         <authType>None</authType>
         <timeoutDuration>30000</timeoutDuration>
         <timeoutAction>Fault</timeoutAction>
